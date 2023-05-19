@@ -22,7 +22,7 @@ if (BUILD_SLAVE_MONITOR OR BUILD_SLAVE_PAYLOAD)
     )
 endif()
 
-project(bumbleboot C CXX ASM)
+project(bmboot C CXX ASM)
 
 if (BUILD_SLAVE_PAYLOAD)
     if(NOT DEFINED BMBOOT_BSP_EL1_INCLUDE_DIR)
@@ -193,14 +193,14 @@ else()
 #    set_property(TARGET bmboot_master PROPERTY CXX_STANDARD 20)
     target_compile_features(bmboot_master PUBLIC cxx_std_20)
 
-    add_executable(bumctl src/tools/bumctl.cpp)
-    target_link_libraries(bumctl PUBLIC bmboot_master)
+    add_executable(bmctl src/tools/bmctl.cpp)
+    target_link_libraries(bmctl PUBLIC bmboot_master)
 
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_master)
 
-    foreach(TOOL bumctl console)
-        # Make sure bumctl is linked fully statically
+    foreach(TOOL bmctl console)
+        # Make sure bmctl is linked fully statically
         # TODO: the clean solution would be to use a toolchain that matches the target OS
         target_link_options(${TOOL} PRIVATE -static -static-libgcc -static-libstdc++)
     endforeach()

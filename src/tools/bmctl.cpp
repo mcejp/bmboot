@@ -7,10 +7,10 @@
 #include <vector>
 
 static int usage() {
-    fprintf(stderr, "usage: bumctl boot <payload>\n");
-    fprintf(stderr, "usage: bumctl reset\n");
-    fprintf(stderr, "usage: bumctl status\n");
-    fprintf(stderr, "usage: bumctl startup\n");
+    fprintf(stderr, "usage: bmctl boot <payload>\n");
+    fprintf(stderr, "usage: bmctl reset\n");
+    fprintf(stderr, "usage: bmctl status\n");
+    fprintf(stderr, "usage: bmctl startup\n");
     return -1;
 }
 
