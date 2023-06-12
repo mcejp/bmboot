@@ -8,8 +8,10 @@
 
 #if EL3
 #define get_ELR() mfcp(ELR_EL3)
+#define EL_STRING "EL3"
 #elif EL1_NONSECURE
 #define get_ELR() mfcp(ELR_EL1)
+#define EL_STRING "EL1"
 #endif
 
 extern "C" {
@@ -17,7 +19,7 @@ extern "C" {
 void FIQInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("FIQInterrupt", fault_address);
+    bmboot_s::notify_payload_crashed("FIQInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
@@ -42,7 +44,7 @@ void IRQInterrupt(void)
     }
 
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("IRQInterrupt", fault_address);
+    bmboot_s::notify_payload_crashed("IRQInterrupt " EL_STRING, fault_address);
 
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
     for (;;) {}
@@ -51,14 +53,14 @@ void IRQInterrupt(void)
 void SynchronousInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("SynchronousInterrupt", fault_address);
+    bmboot_s::notify_payload_crashed("SynchronousInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
 void SErrorInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("SErrorInterrupt", fault_address);
+    bmboot_s::notify_payload_crashed("SErrorInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
