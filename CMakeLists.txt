@@ -60,7 +60,7 @@ if (BUILD_SLAVE_PAYLOAD)
     include(cmake/Bmboot.cmake)
 
     add_executable(bmboot_example_payload.elf
-            src/example_payload/main.cpp
+            src/payloads/hello_world.cpp
             )
 
     target_link_libraries(bmboot_example_payload.elf PRIVATE bmboot_payload)
