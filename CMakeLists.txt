@@ -24,17 +24,7 @@ endif()
 
 project(bmboot C CXX ASM)
 
-if (BUILD_SLAVE_PAYLOAD)
-    if(NOT DEFINED BMBOOT_BSP_EL1_INCLUDE_DIR)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_INCLUDE_DIR must be set")
-    endif()
-
-    if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
-    endif()
-
-    # -----------------------------------------------------------------------------------------------------------
-
+function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
     add_library(bmboot_payload STATIC
             slave/zynqmp/vectors.cpp
             src/bmboot_slave.cpp
@@ -56,6 +46,26 @@ if (BUILD_SLAVE_PAYLOAD)
     target_link_options(bmboot_payload PUBLIC
             -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/slave/zynqmp/cpu1/payload.ld
             )
+endfunction()
+
+if (BUILD_SLAVE_PAYLOAD)
+    # note that in this case we expect BSP paths to be provided from outside
+
+    if(NOT DEFINED BMBOOT_BSP_EL1_HOME)
+        message(FATAL_ERROR "BMBOOT_BSP_EL1_HOME must be set")
+    endif()
+
+    if(NOT DEFINED BMBOOT_BSP_EL1_INCLUDE_DIR)
+        message(FATAL_ERROR "BMBOOT_BSP_EL1_INCLUDE_DIR must be set")
+    endif()
+
+    if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
+        message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
+    endif()
+
+    # -----------------------------------------------------------------------------------------------------------
+
+    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
 
     include(cmake/Bmboot.cmake)
 
@@ -69,6 +79,10 @@ if (BUILD_SLAVE_PAYLOAD)
 
     # -----------------------------------------------------------------------------------------------------------
 elseif (BUILD_SLAVE_MONITOR)
+    # to be precise, what this configuration builds is the set of everything that bmboot_master requires:
+    #   - bmboot_slave_zynqmp_cpu1
+    #   - test payloads
+
     # not what we _should_ be doing, but something that works
     include(../bsp/bsp.cmake)
     MakeBsp(3)
@@ -121,6 +135,40 @@ elseif (BUILD_SLAVE_MONITOR)
 
     # -----------------------------------------------------------------------------------------------------------
 
+    # use this opportunity to also build test payloads
+    # is it ok to trigger also EL1 BSP here? or is this all wrong? THIS NEEDS A LONG, HARD LOOK
+
+    MakeBsp(1)
+
+    if(NOT DEFINED BMBOOT_BSP_EL1_HOME)
+        message(FATAL_ERROR "BMBOOT_BSP_EL1_HOME must be set")
+    endif()
+
+    if(NOT DEFINED BMBOOT_BSP_EL1_INCLUDE_DIR)
+        message(FATAL_ERROR "BMBOOT_BSP_EL1_INCLUDE_DIR must be set")
+    endif()
+
+    if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
+        message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
+    endif()
+
+    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
+
+    include(cmake/Bmboot.cmake)
+
+    foreach(PAYLOAD access_violation hello_world)
+        set(TARGET payload_${PAYLOAD}.elf)
+
+        add_executable(${TARGET}
+                src/payloads/${PAYLOAD}.cpp
+                )
+
+        target_link_libraries(${TARGET} PRIVATE bmboot_payload)
+
+        Bmboot_PayloadPostBuild(${TARGET})
+    endforeach()
+
+    # -----------------------------------------------------------------------------------------------------------
 else()
     set(GENERATED_INCLUDE ${CMAKE_BINARY_DIR}/generated_include)
     file(MAKE_DIRECTORY ${GENERATED_INCLUDE})
@@ -193,8 +241,20 @@ else()
 #    set_property(TARGET bmboot_master PROPERTY CXX_STANDARD 20)
     target_compile_features(bmboot_master PUBLIC cxx_std_20)
 
-    add_executable(bmctl src/tools/bmctl.cpp)
+    add_executable(bmctl
+            src/tools/bmctl.cpp
+            )
     target_link_libraries(bmctl PUBLIC bmboot_master)
+
+    # Testing
+    add_subdirectory("${LIBRARIES_HOME}/googletest-1.11.0" "${CMAKE_CURRENT_BINARY_DIR}/googletest")
+
+    add_executable(bmtest
+            src/tests/tests.cpp
+            src/tools/bmtest.cpp
+            )
+    target_link_libraries(bmtest PUBLIC bmboot_master GTest::gtest pthread dl)
+    target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-2.33.so -Wl,-rpath,/my-lib)
 
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_master)

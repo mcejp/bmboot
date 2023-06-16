@@ -1,5 +1,6 @@
 #include "bmboot_internal.hpp"
 #include "bmboot_slave.hpp"
+#include "mach/mach_baremetal_defs.hpp"
 
 #include <cstring>
 
@@ -14,6 +15,9 @@ void notify_payload_crashed(const char* desc, uintptr_t address) {
     ipc_block.dom_fault_el = mfcp(currentEL);
     strncpy(ipc_block.dom_fault_desc, desc, sizeof(ipc_block.dom_fault_desc));
     ipc_block.dom_state = DomainState::crashedPayload;
+
+    // Force data propagation
+    memory_write_reorder_barrier();
 }
 
 void notify_payload_started() {
