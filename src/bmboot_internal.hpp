@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include "cpu_state.hpp"
+
 namespace bmboot_internal {
 
 // We are assuming a coherent memory system
@@ -12,6 +14,7 @@ constexpr inline size_t     MONITOR_CODE_SIZE =     0x0001'0000;
 constexpr inline uintptr_t  MONITOR_IPC_START =     0x7801'0000;
 constexpr inline size_t     MONITOR_IPC_SIZE =      0x0001'0000;
 constexpr inline uintptr_t  PAYLOAD_START =         0x7802'0000;
+constexpr inline uintptr_t  PAYLOAD_MAX_SIZE =      0x01FE'0000;        // code, data, stack, everything
 
 // placed in the last 4 bytes of MONITOR_CODE area
 using Cookie = uint32_t;
@@ -32,6 +35,9 @@ struct IpcBlock {
     uint32_t dom_fault_el;
     uintptr_t dom_fault_pc;     // code address of fault
     char dom_fault_desc[32];
+
+    Aarch64_Regs dom_regs;
+    Aarch64_FpRegs dom_fpregs;
 
     // standard output dom->mst
     size_t mst_stdout_rdpos;

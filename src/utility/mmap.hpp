@@ -22,6 +22,10 @@ namespace bmboot
             this->unmap();
         }
 
+        void* data() {
+            return this->base;
+        }
+
         void unmap() {
             if (this->base) {
                 ::munmap(this->base, len);

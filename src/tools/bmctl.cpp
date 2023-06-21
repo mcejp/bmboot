@@ -7,7 +7,8 @@
 #include <vector>
 
 static int usage() {
-    fprintf(stderr, "usage: bmctl boot <payload>\n");
+    fprintf(stderr, "usage: bmctl core\n");
+    fprintf(stderr, "usage: bmctl exec <payload>\n");
     fprintf(stderr, "usage: bmctl reset\n");
     fprintf(stderr, "usage: bmctl status\n");
     fprintf(stderr, "usage: bmctl startup\n");
@@ -44,7 +45,15 @@ int main(int argc, char** argv) {
 
     auto domain = std::get<bmboot_m::DomainHandle>(maybe_domain);
 
-    if (strcmp(argv[1], "exec") == 0) {
+    if (strcmp(argv[1], "core") == 0) {
+        auto err = bmboot_m::dump_core(domain, "core");
+
+        if (err.has_value()) {
+            fprintf(stderr, "dump_core: error: %s\n", to_string(*err).c_str());
+            return -1;
+        }
+    }
+    else if (strcmp(argv[1], "exec") == 0) {
         if (argc != 3) {
             return usage();
         }

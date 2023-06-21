@@ -38,6 +38,7 @@ MaybeError start_payload_at(DomainHandle const& domain, uintptr_t entry_address)
 
 int stdout_getchar(DomainHandle const& domain);
 
+MaybeError dump_core(DomainHandle const& domain, char const* filename);
 void dump_debug_info(Domain domain);
 
 }

@@ -273,6 +273,7 @@ storefloat:
 	savefloatregister
 	b	restorecontext
 synchronoushandler:
+	mov x0, sp
 	bl	SynchronousInterrupt
 restorecontext:
 	restoreregister

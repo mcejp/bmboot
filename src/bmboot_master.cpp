@@ -1,6 +1,7 @@
 #include "mach/mach_linux.hpp"
 #include "bmboot_internal.hpp"
 #include "bmboot_master.hpp"
+#include "coredump_linux.hpp"
 #include "utility/mmap.hpp"
 
 #include "bmboot_slave_zynqmp_cpu1.hpp"
@@ -49,6 +50,10 @@ static volatile bmboot_internal::IpcBlock& get_ipc_block(DomainHandle const& dom
     return *(volatile bmboot_internal::IpcBlock*) domain.ipc_block;
 }
 
+static bmboot_internal::IpcBlock& get_ipc_block_nonvol(DomainHandle const& domain) {
+    return *(bmboot_internal::IpcBlock*) domain.ipc_block;
+}
+
 static MaybeError load_to_physical_memory(uintptr_t address, std::span<uint8_t const> binary) {
     auto devmem = get_devmem_handle();
     if (std::holds_alternative<ErrorCode>(devmem)) {
@@ -92,6 +97,45 @@ static MaybeError await_monitor_startup(DomainHandle const& domain) {
     }
 
     return ErrorCode::monitorStartTimedOut;
+}
+
+// ************************************************************
+
+MaybeError dump_core(DomainHandle const& domain, char const* filename) {
+    auto state = get_domain_state(domain);
+
+    if (state != DomainState::crashedPayload) {
+        return ErrorCode::badDomainState;
+    }
+
+    auto devmem = get_devmem_handle();
+    if (std::holds_alternative<ErrorCode>(devmem)) {
+        return std::get<ErrorCode>(devmem);
+    }
+
+    Mmap code_area(nullptr,
+                   bmboot_internal::PAYLOAD_MAX_SIZE,
+                   PROT_READ | PROT_WRITE,
+                   MAP_SHARED,
+                   std::get<int>(devmem),
+                   bmboot_internal::PAYLOAD_START);
+
+    if (!code_area) {
+        return ErrorCode::mmapFailed;
+    }
+
+    auto& ipc_vol = get_ipc_block_nonvol(domain);
+
+    static const MemorySegment segments[] {
+            { bmboot_internal::PAYLOAD_START, bmboot_internal::PAYLOAD_MAX_SIZE, code_area.data() },
+    };
+
+    write_core_dump(filename,
+                    segments,
+                    ipc_vol.dom_regs,
+                    ipc_vol.dom_fpregs);
+
+    return {};
 }
 
 DomainHandleOrErrorCode open_domain(Domain domain) {

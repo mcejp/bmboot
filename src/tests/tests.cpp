@@ -62,6 +62,26 @@ struct BmbootFixture : public ::testing::Test
         }
     }
 
+    std::string execute_command_and_capture_output(std::string const& command) {
+        FILE* pipe = popen(command.c_str(), "r");
+        if (!pipe) {
+            throw std::runtime_error("Failed to execute command: " + std::string(strerror(errno)));
+        }
+
+        std::stringstream output_stream;
+        char buffer[128];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            output_stream << buffer;
+        }
+
+        int exit_code = pclose(pipe);
+        if (exit_code != 0) {
+            throw std::runtime_error("Command exited with an error (exit code: " + std::to_string(exit_code) + ")");
+        }
+
+        return output_stream.str();
+    }
+
     void execute_payload(const char* filename) const {
         std::ifstream file(filename, std::ios::binary);
 
@@ -78,6 +98,10 @@ struct BmbootFixture : public ::testing::Test
     DomainHandle domain;
 };
 
+static bool ContainsSubstring(std::string const& output, std::string const& substring) {
+    return output.find(substring) != std::string::npos;
+}
+
 TEST_F(BmbootFixture, hello_world) {
     // synopsis of test:
     // 1. load payload_hello_world
@@ -93,9 +117,11 @@ TEST_F(BmbootFixture, access_violation) {
     // synopsis of test:
     // 1. load payload_access_violation
     // 2. assert that it crashes
-    // 3. reset the domain back into loader
-    // 4. load payload_hello_world
-    // 5. assert that it starts correctly
+    // 3. extract a core dump
+    // 4. parse the core dump and check for an expected known symbol
+    // 5. reset the domain back into loader
+    // 6. load payload_hello_world
+    // 7. assert that it starts correctly
 
     execute_payload("payload_access_violation.bin");
 
@@ -104,6 +130,20 @@ TEST_F(BmbootFixture, access_violation) {
     auto state = get_domain_state(domain);
     ASSERT_EQ(state, DomainState::crashedPayload);
 
+    // Save core dump
+    auto err = dump_core(domain, "core");
+    ASSERT_FALSE(err.has_value());
+
+    // Ensure the core dump was created
+    struct stat st {};
+    ASSERT_EQ(stat("core", &st), 0);
+    ASSERT_GT(st.st_size, 4096);
+
+    // Invoke gdb in batch mode to extract the stack trace
+    auto output = execute_command_and_capture_output("gdb --batch -n -ex bt payload_access_violation.elf core");
+    EXPECT_PRED2(ContainsSubstring, output, "in access_invalid_memory()");
+
+    // Reset domain
     throw_for_err(reset_domain(domain));
 
     execute_payload("payload_hello_world.bin");

@@ -28,6 +28,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
     add_library(bmboot_payload STATIC
             slave/zynqmp/vectors.cpp
             src/bmboot_slave.cpp
+            src/slave_lowlevel.S        # TODO: only parts of this are useful, others will be linked in pointlessly
 
             ${BMBOOT_BSP_EL1_HOME}/libsrc/standalone_v7_1/src/asm_vectors.S
             )
@@ -227,6 +228,7 @@ else()
             src/mach/zynqmp_linux.cpp
             src/bmboot_internal.hpp
             src/bmboot_master.cpp
+            src/coredump_linux.cpp
             src/utility/to_string.cpp
 
             ${SLAVE_ZYNQMP_CPU1_HPP}
