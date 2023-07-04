@@ -1,6 +1,8 @@
 Payload core dump for post-mortem debugging
 ===========================================
 
+Related requirements: :need:`FUNC_08`, :need:`FUNC_09`
+
 Core dump format
 ----------------
 
@@ -51,6 +53,6 @@ Aarch64 build of GDB does not support core dumps.
 
 However, the core dump can also be processed on-device (assuming that the OS ships with GDB); this is taken advantage of
 to implement bmboot tests.
-For example, the stack trace can be extracted without any user interaction like this:
+For example, the stack trace can be extracted without any user interaction like this::
 
     gdb --batch -n -ex bt my_payload.elf core
