@@ -39,7 +39,12 @@ int write_stdout(void const* data, size_t size) {
     while (size > 0) {
         auto wrpos_new = (ipc_block.dom_stdout_wrpos + 1) % sizeof(ipc_block.dom_stdout_buf);
         if (wrpos_new == ipc_block.mst_stdout_rdpos) {
-            // buffer full, abort
+            // Buffer full, abort!
+            // However, we must lie about number of characters written, otherwise stdout error flag will be set and
+            // printf will refuse to print any more
+            // (on a non-rt OS, a write to clogged stdout would just block instead)
+
+            wrote += size;
             break;
         }
 

@@ -4,6 +4,8 @@ Master API
 
 .. TODO: auto-generate, e.g. via Doxygen + Breathe
 
+Header: :src_file:`include/bmboot_master.hpp`
+
 .. cpp:enum-class:: bmboot::Domain
 
    .. cpp:enumerator:: cpu1

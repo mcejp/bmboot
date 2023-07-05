@@ -37,6 +37,13 @@ Key questions and design decisions
    - https://github.com/m8/armvisor
 
 
+.. question:: ABI compatibility
+   :status: OPEN
+
+   Question: Since FGCD and v_loop will be deployed independently, how to ensure ABI compatibility between bmboot master
+   and payload library?
+
+
 .. question:: Can EL0 have its own VBAR?
    :status: RESOLVED
 

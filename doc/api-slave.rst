@@ -8,6 +8,8 @@ Related terminology:
 - :term:`payload`
 - :term:`slave domain`
 
+Header: :src_file:`include/bmboot_slave.hpp`
+
 .. TODO: auto-generate, e.g. via Doxygen + Breathe
 
 .. cpp:function:: void bmboot_s::notify_payload_crashed(const char* desc, uintptr_t address)

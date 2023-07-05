@@ -1,7 +1,7 @@
 How to write a payload
 ======================
 
-(see also: src/example_payload)
+Example: :src_file:`src/payloads/hello_world.cpp`
 
 - compile as aarch64 bare metal binary
 - entry point in EL1 @ 0x7802'0000 (for CPU1)

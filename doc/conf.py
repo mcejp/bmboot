@@ -31,6 +31,7 @@ author = 'Martin Cejp'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.extlinks',
     'sphinx_needs',
     'sphinx_rtd_theme',
 ]
@@ -55,6 +56,13 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+
+# -- Options for sphinx.ext.extlinks
+
+extlinks = {'src_file': ('https://gitlab.cern.ch/ccs/fgc/-/blob/master/sw/fgc/fgc4/source/bmboot/%s',
+                      '%s')}
+
 
 # -- Options for Sphinx-Needs ------------------------------------------------
 

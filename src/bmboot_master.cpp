@@ -301,6 +301,9 @@ MaybeError start_payload_at(DomainHandle const& domain, uintptr_t entry_address)
 
     auto& ipc_vol = get_ipc_block(domain);
 
+    // flush any residual content of the stdout buffer by setting our read position equal to the write position
+    ipc_vol.mst_stdout_rdpos = ipc_vol.dom_stdout_wrpos;
+
     ipc_vol.mst_payload_entry_address = entry_address;
     ipc_vol.mst_requested_state = DomainState::runningPayload;
 

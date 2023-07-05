@@ -2,7 +2,7 @@
 Memory map
 **********
 
-See also: *src/bmboot_internal.hpp*
+See also: :src_file:`src/bmboot_internal.hpp`
 
 ===========  ===========  ======= ==========================================================
 Start        End             Size Description

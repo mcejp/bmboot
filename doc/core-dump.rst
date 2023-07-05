@@ -3,6 +3,8 @@ Payload core dump for post-mortem debugging
 
 Related requirements: :need:`FUNC_08`, :need:`FUNC_09`
 
+Implementation: :src_file:`src/coredump_linux.cpp`
+
 Core dump format
 ----------------
 

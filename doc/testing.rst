@@ -7,6 +7,6 @@ It is quite difficult to do unit tests for bmboot, since it operates so close to
 Currently there are a few system-level tests. These are based on the `GoogleTest`_ framework. The tests are compiled
 as a separate executable (*bmtest*) that must be copied to and executed on the target device.
 
-See also: *src/tests/tests.cpp*
+Implementation: :src_file:`src/tests/tests.cpp`
 
 .. _GoogleTest: https://github.com/google/googletest
