@@ -21,10 +21,10 @@ struct DomainHandle {
 using MaybeError = std::optional<ErrorCode>;
 using DomainHandleOrErrorCode = std::variant<DomainHandle, ErrorCode>;
 
-// Load the monitor code at the appropriate address + take the CPU out of reset
-// TODO: will there be separate builds for different domains?
 DomainHandleOrErrorCode open_domain(Domain domain);
 
+// Load the monitor code at the appropriate address + take the CPU out of reset
+// TODO: will there be separate builds for different domains?
 MaybeError startup_domain(DomainHandle const& domain);
 MaybeError startup_domain(DomainHandle const& domain, std::span<uint8_t const> bmboot_slave_binary);
 

@@ -25,11 +25,11 @@ Design
 
 .. image:: privilege-modes.png
 
-bmboot executes on Exception Level 3, the highest-privilege mode of the CPU.
-The user program, called *payload*, is executed in EL1.
+bmboot executes on :term:`Exception Level 3 <EL3>`, the highest-privilege mode of the CPU.
+The user program, called *payload*, is executed in :term:`EL1`.
 Unlike in a traditional operating system, a running payload has exclusive ownership of CPU time.
-In other words, the monitor does not execute any of its code (and thus does not add any overhead or unpredictability),
-except when explicitly instructed to intervene.
+In other words, the :term:`monitor` does not execute any of its code (and thus does not add any overhead or
+unpredictability), except when explicitly instructed to intervene.
 
 By design, bmboot is not a fully-fledged hypervisor. It only implements the minimum set of features necessary to meet
 the needs of FGC4.
@@ -76,3 +76,46 @@ Slave side
   This implements the monitor itself.
 - ``bmboot_payload`` library.
   This is linked into user payloads in order to let them make use of the features of the monitor.
+
+
+Glossary
+========
+
+.. glossary::
+
+   core dump
+   core file
+      Recorded state of the working memory of a computer program at a specific time, generally when the program has
+      crashed or otherwise terminated abnormally.
+
+      See also: :doc:`core-dump`
+
+   domain
+   slave domain
+      A bare-metal core under the control of bmboot.
+
+      Unlike hypervisors such as Xen, no domain is assigned to the master.
+
+   exception level
+   EL0
+   EL1
+   EL2
+   EL3
+      A concept in ARM CPUs which establishes a hierarchy of privilege between different code running on the CPU.
+      A higher EL number indicates a higher level of privilege.
+
+   IPC block
+      A block of memory dedicated to communication between the master and a domain. A separate IPC block is allocated
+      to each domain.
+
+   IPI
+   Inter-Processor Interrupt
+      A mechanism by which one CPU core can trigger an interrupt in another.
+
+      See also: :doc:`ipi`
+
+   monitor
+      The part of bmboot which executes on slave CPUs.
+
+   payload
+      The user code which executes on slave CPUs.

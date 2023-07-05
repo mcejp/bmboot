@@ -3,7 +3,7 @@ Key questions and design decisions
 **********************************
 
 .. needtable:: Unanswered
-   :filter: type == "question" and status.upper() == "OPEN"
+   :filter: type == "question" and (not status or status.upper() != "RESOLVED")
    :columns: id;title
    :style: table
 
@@ -24,6 +24,17 @@ Key questions and design decisions
 
       - virtual interrupts?
       - Inter-Processor Interrupts?
+
+
+.. question:: Can an existing project fulfill the needs?
+   :status: RESOLVED
+
+   We have looked at KVM, Xen, Jailhouse. None of them is a good match.
+
+   There are some other interesting projects but more as motivation than production-ready tools:
+
+   - https://github.com/ktemkin-archive/bfstub
+   - https://github.com/m8/armvisor
 
 
 .. question:: Can EL0 have its own VBAR?
@@ -100,6 +111,12 @@ Key questions and design decisions
    It should be possible by patching the ELF file.
 
 
+.. question:: Will separate monitor binaries be required for different domains?
+
+
+.. question:: Will separate payload builds be required for different domains?
+
+
 .. question:: What are the trade-offs of different exception levels and which should we use?
    :status: RESOLVED
 
@@ -126,3 +143,4 @@ Key questions and design decisions
    - it is not exactly what EL3 was meant for
 
    Decision: **use EL1 and EL3**, because these are supported by the SDK.
+   EL0 and EL1 might make more sense in theory, but would be more work to implement.

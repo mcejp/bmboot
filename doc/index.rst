@@ -8,6 +8,13 @@ Bmboot docs
    introduction
    questions
    requirements
+   build
    core-dump
+   external-requirements
+   ipi
+   memory-map
    payload
+   testing
+   api-master
+   api-slave
    literature
