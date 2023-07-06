@@ -22,7 +22,7 @@ std::optional<ErrorCode> boot_zynq_cpu1(int devmem_fd, uintptr_t reset_address) 
     Mmap base_0xFD5C0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD5C0000);
 
     if (!base_0xFD1A0000 || !base_0xFD5C0000) {
-        return ErrorCode::mmapFailed;
+        return ErrorCode::mmap_failed;
     }
 
     base_0xFD1A0000.write32(0x0104, 0x0000380E);           // assert reset on CPU1

@@ -1,9 +1,9 @@
-#include <bmboot_slave.hpp>
+#include <bmboot/payload_runtime.hpp>
 
 int main(int argc, char** argv) {
     *(int*)0xFF000030 = ':';
 
-    bmboot_s::notify_payload_started();
+    bmboot::notifyPayloadStarted();
 
     for (;;) {}
 }

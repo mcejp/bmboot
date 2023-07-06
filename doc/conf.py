@@ -31,6 +31,7 @@ author = 'Martin Cejp'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'breathe',
     'sphinx.ext.extlinks',
     'sphinx_needs',
     'sphinx_rtd_theme',
@@ -62,6 +63,15 @@ html_static_path = ['_static']
 
 extlinks = {'src_file': ('https://gitlab.cern.ch/ccs/fgc/-/blob/master/sw/fgc/fgc4/source/bmboot/%s',
                       '%s')}
+
+
+# -- Options for Breathe -----------------------------------------------------
+
+breathe_projects = {
+    "bmboot": "../xml",
+}
+
+breathe_default_project = "bmboot"
 
 
 # -- Options for Sphinx-Needs ------------------------------------------------

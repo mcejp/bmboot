@@ -1,12 +1,12 @@
 #pragma once
 
-#include "cpu_state.hpp"
+#include "../cpu_state.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
-namespace bmboot_m {
+namespace bmboot {
 
 struct MemorySegment {
     size_t start_address, size;

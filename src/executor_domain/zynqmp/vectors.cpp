@@ -1,6 +1,6 @@
-#include "bmboot_slave.hpp"
-#include "../src/bmboot_internal.hpp"
-#include "../src/mach/mach_baremetal_defs.hpp"
+#include "bmboot/payload_runtime.hpp"
+#include "../../bmboot_internal.hpp"
+#include "../../mach/mach_baremetal_defs.hpp"
 
 #include "bspconfig.h"
 #include "xipipsu.h"
@@ -38,7 +38,7 @@ extern "C" {
 void FIQInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("FIQInterrupt " EL_STRING, fault_address);
+    bmboot::notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
@@ -63,7 +63,7 @@ void IRQInterrupt(void)
     }
 
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("IRQInterrupt " EL_STRING, fault_address);
+    bmboot::notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
 
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
     for (;;) {}
@@ -85,14 +85,14 @@ void SynchronousInterrupt(uint64_t* the_sp)
     // BUG: this does not save all GPRs!
     fill_crash_info(fault_address, (uintptr_t)(the_sp + 32), the_sp);
 
-    bmboot_s::notify_payload_crashed("SynchronousInterrupt " EL_STRING, fault_address);
+    bmboot::notifyPayloadCrashed("SynchronousInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
 void SErrorInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot_s::notify_payload_crashed("SErrorInterrupt " EL_STRING, fault_address);
+    bmboot::notifyPayloadCrashed("SErrorInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 

@@ -21,55 +21,55 @@ Functional
    :status: implemented
    :severity: mandatory
 
-   Allow loading of user-provided payloads
+   Enable loading of user-provided payloads conforming to the specified format and API.
 
 
-.. req:: Slave domain status API
+.. req:: Executor domain status API
    :id: FUNC_02
    :status: implemented
    :severity: mandatory
 
-   Provide an API for querying the status of the slave domain
+   Provide an API for querying the status of the executor domain
 
 
-.. req:: Slave domain status CLI
+.. req:: Executor domain status CLI
    :id: FUNC_03
    :status: implemented
    :severity: mandatory
 
-   Provide CLI for querying the status of the slave domain
+   Provide CLI for querying the status of the executor domain
 
 
-.. req:: Resetting the slave domain
+.. req:: Resetting the executor domain
    :id: FUNC_04
    :status: implemented
    :severity: mandatory
 
-   Provide a facility for resetting the slave domain, allowing new payload to run fresh
+   Provide a facility for resetting the executor domain, allowing new payload to run fresh
 
 
-.. req:: Stdout forwarding API (slave)
+.. req:: Stdout forwarding API (executor)
    :id: FUNC_05
    :status: implemented
    :severity: mandatory
 
-   Provide forwarding API for the slave's standard output (``printf`` etc.)
+   Provide forwarding API for the payload's standard output (``printf`` etc.)
 
 
-.. req:: Stdout forwarding API (master)
+.. req:: Stdout forwarding API (manager)
    :id: FUNC_06
    :status: implemented
    :severity: mandatory
 
-   Provide API for following the slave stdout
+   Provide API for following the executor stdout
 
 
-.. req:: Stdout forwarding CLI (master)
+.. req:: Stdout forwarding CLI (manager)
    :id: FUNC_07
    :status: implemented
    :severity: mandatory
 
-   Provide CLI for following the slave stdout
+   Provide CLI for following the executor stdout
 
 
 .. req:: Core dump
@@ -77,7 +77,7 @@ Functional
    :status: implemented
    :severity: mandatory
 
-   Support retrieving a core dump from a crashed slave.
+   Support retrieving a core dump from a crashed executor.
 
    For implementation details see :doc:`core-dump`.
 
@@ -87,7 +87,7 @@ Functional
    :status: implemented
    :severity: mandatory
 
-   Support retrieving a stack trace from a crashed slave
+   Support retrieving a stack trace from a crashed executor
 
 
 .. req:: Interrupt API
@@ -106,6 +106,23 @@ Functional
    Provide some memory management functions
 
 
+.. req:: Shared memory for communication
+   :id: FUNC_12
+   :status: resolved
+   :severity: mandatory
+
+   A block of shared memory shall be provided for communication.
+
+
+.. req:: Consistent addressing in shared memory
+   :id: FUNC_13
+   :status: resolved
+   :severity: mandatory
+   :links: FUNC_12
+
+   The shared memory must appear at the same physical address in the executor and virtual address in the manager.
+
+
 Non-functional
 --------------
 
@@ -115,23 +132,15 @@ Non-functional
    :severity: mandatory
 
 
-.. req:: Support multiple slave domains
+.. req:: Support multiple executor domains
    :id: NONFUNC_02
    :status: open
    :severity: mandatory
 
-   It shall support multiple slave domains
+   It shall support multiple executor domains, corresponding to different cores of the CPU
+   (minus the cores running Linux).
 
-
-.. req:: Support reg_loop multi-tenancy
-   :id: NONFUNC_03
-   :status: implemented
-   :severity: mandatory
-   :links: NONFUNC_02
-
-   Support reg_loop multi-tenancy, including tenants scattered across multiple bare-metal cores.
-
-   (This does not translate to any specific features.)
+   Rationale: required for reg_loop+i_loop, as well as scattered reg_loop multi-tenancy.
 
 
 .. req:: Ensure payload integrity
@@ -140,3 +149,22 @@ Non-functional
    :severity: mandatory
 
    (validate CRC before execution)
+
+
+.. req:: Vitis compatibility
+   :id: NONFUNC_05
+   :status: in progress
+   :severity: mandatory
+
+   Vitis is the IDE of choice for v_loop development.
+   For user convenience, it shall be possible to use the built-in debugging flow which is unaware of bmboot. Moreover,
+   Vitis insists on being in control of the :term:`BSP` and only provides libraries for :term:`EL1` and :term:`EL3`.
+
+
+.. req:: Real-time behavior
+   :id: NONFUNC_06
+   :status: resolved
+   :severity: mandatory
+
+   Assuming a user payload executing real-time control at a rate of 100 kHz, the worst-case iteration overhead caused
+   by bmboot shall be negligible.

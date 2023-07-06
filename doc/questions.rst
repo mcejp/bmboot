@@ -39,9 +39,10 @@ Key questions and design decisions
 
 .. question:: ABI compatibility
    :status: OPEN
+   :links: Q_PLD_MON_ABI
 
-   Question: Since FGCD and v_loop will be deployed independently, how to ensure ABI compatibility between bmboot master
-   and payload library?
+   Question: Since FGCD and v_loop will be deployed independently, how to ensure ABI compatibility between bmboot
+   manager and payload library?
 
 
 .. question:: Can EL0 have its own VBAR?
@@ -88,8 +89,18 @@ Key questions and design decisions
    Answer: if EL3.IRQ is set, IRQs cannot be masked by EL1
 
 
+.. question:: How to trace down original executable given a core dump?
+   :id: Q_CORE_ID
+
+
+.. question:: Is there value in having a separate ``starting_payload`` state?
+
+   It can help in recognizing that an invalid file was loaded as a payload.
+
+
 .. question:: Payload executable format
-   :status: OPEN
+   :id: Q_PLD_FMT
+   :status: RESOLVED
 
    Question: What executable format should be used for the payload?
 
@@ -104,6 +115,7 @@ Key questions and design decisions
 
 
 .. question:: Should all payload->monitor calls be via the SMC instruction?
+   :id: Q_PLD_MON_ABI
    :status: RESOLVED
 
    It would be cleaner design, but for now we will not bother and we will access IPC memory directly.
@@ -119,9 +131,23 @@ Key questions and design decisions
 
 
 .. question:: Will separate monitor binaries be required for different domains?
+   :status: RESOLVED
+
+   Answer: **yes**, at least as long as we use the Xilinx SDKs. There are multiple places where the CPU index must be
+   hard-coded:
+
+   - BIF (Boot Image Format) points to different cores in one line.
+   - in xparameters.h from bspinclude sets different ``XPAR_CPU_ID``, ``XPAR_CPU_CORTEXA53_{0, 1}_CPU_CLK_FREQ_HZ``,
+     and ``XPAR_CPU_CORTEXA53_{0, 1}_TIMESTAMP_CLK_FREQ``.
+   - in system.mss, ``PARAMETER PROC_INSTANCE`` and ``PARAMETER HW_INSTANCE`` are set to different core IDs:
+     ``psu_cortexa53_{0, 1}``
 
 
 .. question:: Will separate payload builds be required for different domains?
+   :status: RESOLVED
+   :links: Q_PLD_FMT
+
+   Answer: **yes**, unless decision on use of flat binaries for payloads is reversed.
 
 
 .. question:: What are the trade-offs of different exception levels and which should we use?

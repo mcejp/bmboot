@@ -9,12 +9,12 @@ The build system is driven by CMake. A tricky aspect of it is the requirement to
 
 The build system operates in one of 3 modes:
 
-- master
-- slave :term:`monitor`
-- slave :term:`payload`
+- :term:`manager`
+- :term:`monitor`
+- :term:`payload`
 
-When building the master, CMake will recurse into itself to build the slave monitor, which ends up being embedded in
-the master library. Due to this, a number of variables are mandatory, whether building the project stand-alone or via
+When building the manager, CMake will recurse into itself to build the monitor, which ends up being embedded in
+the manager library. Due to this, a number of variables are mandatory, whether building the project stand-alone or via
 ``add_subdirectory``.
 
 - CMAKE_C_COMPILER_AARCH64_NONE_ELF
@@ -25,8 +25,8 @@ the master library. Due to this, a number of variables are mandatory, whether bu
 - BMBOOT_BSP_EL3_INCLUDE_DIR
 - BMBOOT_BSP_EL3_LIBRARIES
 
-On the slave side, bmboot must be build with the ``BUILD_SLAVE_PAYLOAD`` variable set. Additionally, these are
-mandatory:
+To build the payload runtime support library, bmboot must be configured with the ``BMBOOT_BUILD_PAYLOAD`` CMake variable set.
+Additionally, these are mandatory:
 
 - BMBOOT_BSP_EL1_HOME
 - BMBOOT_BSP_EL1_INCLUDE_DIR

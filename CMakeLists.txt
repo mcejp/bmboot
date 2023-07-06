@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-if (BUILD_SLAVE_MONITOR OR BUILD_SLAVE_PAYLOAD)
+if (BUILD_MONITOR OR BMBOOT_BUILD_PAYLOAD)
     if (CMAKE_SIZE STREQUAL "")
         message(FATAL_ERROR "You must provide CMAKE_SIZE option")
     endif()
@@ -25,31 +25,31 @@ endif()
 project(bmboot C CXX ASM)
 
 function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
-    add_library(bmboot_payload STATIC
-            slave/zynqmp/vectors.cpp
-            src/bmboot_slave.cpp
-            src/slave_lowlevel.S        # TODO: only parts of this are useful, others will be linked in pointlessly
+    add_library(bmboot_payload_runtime STATIC
+            src/executor_domain/zynqmp/vectors.cpp
+            src/executor_domain/payload_runtime.cpp
+            src/executor_domain/executor_lowlevel.S        # TODO: only parts of this are useful, others will be linked in pointlessly
 
             ${BMBOOT_BSP_EL1_HOME}/libsrc/standalone_v7_1/src/asm_vectors.S
             )
 
-    target_compile_features(bmboot_payload PUBLIC cxx_std_20)
+    target_compile_features(bmboot_payload_runtime PUBLIC cxx_std_20)
 
-    target_include_directories(bmboot_payload PUBLIC
+    target_include_directories(bmboot_payload_runtime PUBLIC
             include
             ${BMBOOT_BSP_EL1_INCLUDE_DIR}
             )
 
-    target_link_libraries(bmboot_payload PUBLIC
+    target_link_libraries(bmboot_payload_runtime PUBLIC
             ${BMBOOT_BSP_EL1_LIBRARIES}
             )
 
-    target_link_options(bmboot_payload PUBLIC
-            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/slave/zynqmp/cpu1/payload.ld
+    target_link_options(bmboot_payload_runtime PUBLIC
+            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor_domain/zynqmp/cpu1/payload.ld
             )
 endfunction()
 
-if (BUILD_SLAVE_PAYLOAD)
+if (BMBOOT_BUILD_PAYLOAD)
     # note that in this case we expect BSP paths to be provided from outside
 
     if(NOT DEFINED BMBOOT_BSP_EL1_HOME)
@@ -74,14 +74,14 @@ if (BUILD_SLAVE_PAYLOAD)
             src/payloads/hello_world.cpp
             )
 
-    target_link_libraries(bmboot_example_payload.elf PRIVATE bmboot_payload)
+    target_link_libraries(bmboot_example_payload.elf PRIVATE bmboot_payload_runtime)
 
     Bmboot_PayloadPostBuild(bmboot_example_payload.elf)
 
     # -----------------------------------------------------------------------------------------------------------
-elseif (BUILD_SLAVE_MONITOR)
-    # to be precise, what this configuration builds is the set of everything that bmboot_master requires:
-    #   - bmboot_slave_zynqmp_cpu1
+elseif (BUILD_MONITOR)
+    # to be precise, what this configuration builds is the set of everything that bmboot_manager requires:
+    #   - monitor_zynqmp_cpu1
     #   - test payloads
 
     # not what we _should_ be doing, but something that works
@@ -96,42 +96,42 @@ elseif (BUILD_SLAVE_MONITOR)
         message(FATAL_ERROR "BMBOOT_BSP_EL3_LIBRARIES must be set")
     endif()
 
-    add_executable(bmboot_slave_zynqmp_cpu1.elf
+    add_executable(monitor_zynqmp_cpu1.elf
             include/bmboot.hpp
-            include/bmboot_slave.hpp
+            include/bmboot/payload_runtime.hpp
             src/mach/zynqmp_baremetal.cpp
-            src/slave_lowlevel.S
-            src/slave_main.cpp
+            src/executor_domain/executor_lowlevel.S
+            src/executor_domain/monitor.cpp
             src/bmboot_internal.hpp
-            src/bmboot_slave.cpp
+            src/executor_domain/payload_runtime.cpp
 
             # slightly wrong as this will indicate crashedPayload even if the fault is in the monitor
-            slave/zynqmp/vectors.cpp
-            slave/zynqmp/el3/asm_vectors.S
+            src/executor_domain/zynqmp/vectors.cpp
+            src/executor_domain/zynqmp/el3/asm_vectors.S
             )
 
     # -----------------------------------------------------------------------------------------------------------
 
-    target_include_directories(bmboot_slave_zynqmp_cpu1.elf PRIVATE
+    target_include_directories(monitor_zynqmp_cpu1.elf PRIVATE
             include
             ${BMBOOT_BSP_EL3_INCLUDE_DIR}
             )
-    target_compile_features(bmboot_slave_zynqmp_cpu1.elf PUBLIC cxx_std_20)
-    target_link_libraries(bmboot_slave_zynqmp_cpu1.elf PRIVATE
+    target_compile_features(monitor_zynqmp_cpu1.elf PUBLIC cxx_std_20)
+    target_link_libraries(monitor_zynqmp_cpu1.elf PRIVATE
             m
             ${BMBOOT_BSP_EL3_LIBRARIES}
             )
-    target_link_options(bmboot_slave_zynqmp_cpu1.elf PRIVATE
-            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/slave/zynqmp/cpu1/monitor.ld
+    target_link_options(monitor_zynqmp_cpu1.elf PRIVATE
+            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor_domain/zynqmp/cpu1/monitor.ld
             )
 
-    add_custom_command(TARGET bmboot_slave_zynqmp_cpu1.elf POST_BUILD
-            COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:bmboot_slave_zynqmp_cpu1.elf> ${CMAKE_BINARY_DIR}/bmboot_slave_zynqmp_cpu1.bin
-            COMMAND ${CMAKE_OBJDUMP} -dt $<TARGET_FILE:bmboot_slave_zynqmp_cpu1.elf> > bmboot_slave_zynqmp_cpu1.txt
-            COMMENT "Building ${CMAKE_BINARY_DIR}/bmboot_slave_zynqmp_cpu1.bin")
+    add_custom_command(TARGET monitor_zynqmp_cpu1.elf POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:monitor_zynqmp_cpu1.elf> ${CMAKE_BINARY_DIR}/monitor_zynqmp_cpu1.bin
+            COMMAND ${CMAKE_OBJDUMP} -dt $<TARGET_FILE:monitor_zynqmp_cpu1.elf> > monitor_zynqmp_cpu1.txt
+            COMMENT "Building ${CMAKE_BINARY_DIR}/monitor_zynqmp_cpu1.bin")
 
-    add_custom_command(TARGET bmboot_slave_zynqmp_cpu1.elf POST_BUILD
-            COMMAND ${CMAKE_SIZE} $<TARGET_FILE:bmboot_slave_zynqmp_cpu1.elf>
+    add_custom_command(TARGET monitor_zynqmp_cpu1.elf POST_BUILD
+            COMMAND ${CMAKE_SIZE} $<TARGET_FILE:monitor_zynqmp_cpu1.elf>
             )
 
     # -----------------------------------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ elseif (BUILD_SLAVE_MONITOR)
                 src/payloads/${PAYLOAD}.cpp
                 )
 
-        target_link_libraries(${TARGET} PRIVATE bmboot_payload)
+        target_link_libraries(${TARGET} PRIVATE bmboot_payload_runtime)
 
         Bmboot_PayloadPostBuild(${TARGET})
     endforeach()
@@ -196,8 +196,8 @@ else()
         message(FATAL_ERROR "CMAKE_SIZE_AARCH64_NONE_ELF must be set")
     endif()
 
-    # add slave code as ExternalProject
-    ExternalProject_Add(bmboot_slave_zynqmp
+    # add executor code as ExternalProject
+    ExternalProject_Add(monitor_zynqmp
             SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
             CMAKE_ARGS
                 # TODO: can we do better than having to enumerate these one by one?
@@ -208,45 +208,45 @@ else()
                 -DCMAKE_SIZE=${CMAKE_SIZE_AARCH64_NONE_ELF}
                 -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
                 -DCMAKE_BUILD_TYPE=Release
-                -DBUILD_SLAVE_MONITOR=ON
+                -DBUILD_MONITOR=ON
                 -DBMBOOT_BSP_EL3_INCLUDE_DIR=${BMBOOT_BSP_EL3_INCLUDE_DIR}
                 -DBMBOOT_BSP_EL3_LIBRARIES=${BMBOOT_BSP_EL3_LIBRARIES}
             INSTALL_COMMAND ""
             BUILD_ALWAYS ON
-            BUILD_BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/bmboot_slave_zynqmp-prefix/src/bmboot_slave_zynqmp-build/bmboot_slave_zynqmp_cpu1.bin"
+            BUILD_BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/monitor_zynqmp-prefix/src/monitor_zynqmp-build/monitor_zynqmp_cpu1.bin"
             )
 
-    # We need to convert slave binary to a C++ header
+    # We need to convert monitor binary to a C++ header
     include(cmake/FileEmbed.cmake)
-    set(SLAVE_ZYNQMP_CPU1_HPP ${GENERATED_INCLUDE}/bmboot_slave_zynqmp_cpu1.hpp)
-    ExternalProject_Get_Property(bmboot_slave_zynqmp BINARY_DIR)
-    FileEmbed_Add(${BINARY_DIR}/bmboot_slave_zynqmp_cpu1.bin ${SLAVE_ZYNQMP_CPU1_HPP} slave_zynqmp_cpu1_payload)
+    set(MONITOR_ZYNQMP_CPU1_HPP ${GENERATED_INCLUDE}/monitor_zynqmp_cpu1.hpp)
+    ExternalProject_Get_Property(monitor_zynqmp BINARY_DIR)
+    FileEmbed_Add(${BINARY_DIR}/monitor_zynqmp_cpu1.bin ${MONITOR_ZYNQMP_CPU1_HPP} monitor_zynqmp_cpu1_payload)
 
-    add_library(bmboot_master STATIC
+    add_library(bmboot_manager STATIC
             include/bmboot.hpp
-            include/bmboot_master.hpp
+            include/bmboot/domain.hpp
             src/mach/zynqmp_linux.cpp
             src/bmboot_internal.hpp
-            src/bmboot_master.cpp
-            src/coredump_linux.cpp
+            src/manager/domain.cpp
+            src/manager/coredump_linux.cpp
             src/utility/to_string.cpp
 
-            ${SLAVE_ZYNQMP_CPU1_HPP}
+            ${MONITOR_ZYNQMP_CPU1_HPP}
             )
 
-    add_dependencies(bmboot_master bmboot_slave_zynqmp)
+    add_dependencies(bmboot_manager monitor_zynqmp)
 
-    target_include_directories(bmboot_master PUBLIC include)
-    target_include_directories(bmboot_master PRIVATE ${GENERATED_INCLUDE})
+    target_include_directories(bmboot_manager PUBLIC include)
+    target_include_directories(bmboot_manager PRIVATE ${GENERATED_INCLUDE})
 
-#    target_compile_features(bmboot_master cpp20)
-#    set_property(TARGET bmboot_master PROPERTY CXX_STANDARD 20)
-    target_compile_features(bmboot_master PUBLIC cxx_std_20)
+#    target_compile_features(bmboot_manager cpp20)
+#    set_property(TARGET bmboot_manager PROPERTY CXX_STANDARD 20)
+    target_compile_features(bmboot_manager PUBLIC cxx_std_20)
 
     add_executable(bmctl
             src/tools/bmctl.cpp
             )
-    target_link_libraries(bmctl PUBLIC bmboot_master)
+    target_link_libraries(bmctl PUBLIC bmboot_manager)
 
     # Testing
     add_subdirectory("${LIBRARIES_HOME}/googletest-1.11.0" "${CMAKE_CURRENT_BINARY_DIR}/googletest")
@@ -255,11 +255,11 @@ else()
             src/tests/tests.cpp
             src/tools/bmtest.cpp
             )
-    target_link_libraries(bmtest PUBLIC bmboot_master GTest::gtest pthread dl)
+    target_link_libraries(bmtest PUBLIC bmboot_manager GTest::gtest pthread dl)
     target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-2.33.so -Wl,-rpath,/my-lib)
 
     add_executable(console src/tools/console.cpp)
-    target_link_libraries(console PUBLIC bmboot_master)
+    target_link_libraries(console PUBLIC bmboot_manager)
 
     foreach(TOOL bmctl console)
         # Make sure bmctl is linked fully statically

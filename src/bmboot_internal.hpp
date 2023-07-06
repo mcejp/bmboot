@@ -25,12 +25,15 @@ enum {
 };
 
 // TODO: add assertions for sizeof(IpcBlock) vs mmap sizes
+// TODO: instead of mst_ and dom_ prefixes, use sub-structures
+//
+// zeroed in bmboot::startup_domain
 struct IpcBlock {
-    // mst_ prefix -> written by master
+    // mst_ prefix -> written by manager
     uint32_t mst_requested_state;
     uintptr_t mst_payload_entry_address;
 
-    // dom_ prefix -> written by slave domain
+    // dom_ prefix -> written by executor domain
     uint32_t dom_state;
     uint32_t dom_fault_el;
     uintptr_t dom_fault_pc;     // code address of fault

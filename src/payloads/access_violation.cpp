@@ -1,4 +1,4 @@
-#include <bmboot_slave.hpp>
+#include <bmboot/payload_runtime.hpp>
 
 #include "sleep.h"
 
@@ -8,7 +8,7 @@ static void access_invalid_memory() {
 }
 
 int main(int argc, char** argv) {
-    bmboot_s::notify_payload_started();
+    bmboot::notifyPayloadStarted();
 
     // must not be too fast, otherwise it triggers payloadCrashedDuringStartup
     usleep(10'000);

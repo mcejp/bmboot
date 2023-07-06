@@ -15,6 +15,7 @@ Bmboot docs
    memory-map
    payload
    testing
-   api-master
-   api-slave
+   api-base
+   api-manager
+   api-payload
    literature

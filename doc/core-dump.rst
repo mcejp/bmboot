@@ -28,27 +28,27 @@ When the payload attempts an invalid memory access, a *synchronous interrupt* is
 The handler starts by saving general-purpose registers on the stack.
 The C++ part of the code proceeds by saving also floating-point registers and other CPU state that is not always saved.
 Everything goes into a pair of structures within ``IpcBlock``.
-Finally, the domain state is set to ``crashedPayload`` and the core spins until reset to monitor.
+Finally, the domain state is set to ``crashed_payload`` and the core spins until reset to monitor.
 
 Ideally this code should reside in bmboot (at EL3), but until the exception handlers are unified, the payload carries
 its own copy of the exception vectors. One of the reasons to promote this code is that EL3 could then save the register
 state event if EL1 were to corrupt/overrun its stack pointer.
 
 On Linux side, the core dump ELF file is assembled using the saved registers and the payload's memory space,
-which is read out directly via /dev/mem. Ideally, only writable ranges should be dumped, but at the moment we do not
-make this distinction.
+which is read out directly via ``/dev/mem``. Ideally, only writable ranges should be dumped, but at the moment bmboot
+does not have the information necessary to make this distinction. (see :need:`[[id]] <Q_PLD_FMT>`)
 
-The ELF writing part of the code is derived from the Google Coredumper library, but all portability is thrown out,
-so the code is Aarch64-specific.
+The ELF writing part of the code is derived from the Google `Coredumper <https://github.com/anatol/google-coredumper>`_
+library, but all portability is thrown out, so the code is Aarch64-specific.
 
 
 How to extract & process the dump
 ---------------------------------
 
-After a payload has crashed, the core dump must extracted manually using the command ``bmctl core``.
+After a payload has crashed, the core dump must be extracted manually using the command ``bmctl core``.
 This will produce a file called ``core`` which can be evacuated using scp.
-It is also necessary to have the original ELF file of the payload. The core dump currently does not any contain version
-information or hash of the executable.
+It is also necessary to have the original ELF file of the payload. The core dump currently does not contain any version
+information or hash of the executable. (see :need:`[[id]] <Q_CORE_ID>`)
 
 Note that it is necessary to use GDB from the Linux-Aarch64 toolchain; for the reasons explained above, the bare-metal
 Aarch64 build of GDB does not support core dumps.

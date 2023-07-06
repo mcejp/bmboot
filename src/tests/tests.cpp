@@ -1,4 +1,4 @@
-#include "bmboot_master.hpp"
+#include "bmboot/domain.hpp"
 
 #include <gtest/gtest.h>
 
@@ -7,48 +7,48 @@
 #include <thread>
 #include <vector>
 
-using namespace bmboot_m;
+using namespace bmboot;
 using namespace std::chrono_literals;
 
 struct BmbootFixture : public ::testing::Test
 {
     void SetUp() override
     {
-        auto which_domain = bmboot::Domain::cpu1;
+        auto which_domain = bmboot::DomainIndex::cpu1;
 
-        auto maybe_domain = open_domain(which_domain);
+        auto maybe_domain = IDomain::open(which_domain);
 
-        if (!std::holds_alternative<DomainHandle>(maybe_domain)) {
-            throw std::runtime_error("open_domain: error: " + to_string(std::get<bmboot::ErrorCode>(maybe_domain)));
+        if (!std::holds_alternative<std::unique_ptr<IDomain>>(maybe_domain)) {
+            throw std::runtime_error("IDomain::open: error: " + toString(std::get<bmboot::ErrorCode>(maybe_domain)));
         }
 
-        this->domain = std::get<DomainHandle>(maybe_domain);
+        this->domain = std::move(std::get<std::unique_ptr<IDomain>>(maybe_domain));
 
-        auto state = get_domain_state(domain);
+        auto state = domain->getState();
 
-        if (state == DomainState::inReset) {
-            auto err = bmboot_m::startup_domain(domain);
+        if (state == DomainState::in_reset) {
+            auto err = domain->startup();
 
             if (err.has_value()) {
-                throw std::runtime_error("startup_domain: error: " + to_string(*err));
+                throw std::runtime_error("IDomain::startup: error: " + toString(*err));
             }
 
-            state = get_domain_state(domain);
+            state = domain->getState();
         }
-        else if (state != DomainState::monitorReady) {
+        else if (state != DomainState::monitor_ready) {
             // attempt to reset it
 
-            auto err = bmboot_m::reset_domain(domain);
+            auto err = domain->terminatePayload();
 
             if (err.has_value()) {
-                throw std::runtime_error("reset_domain: error: " + to_string(*err));
+                throw std::runtime_error("IDomain::terminatePayload: error: " + toString(*err));
             }
 
-            state = get_domain_state(domain);
+            state = domain->getState();
         }
 
-        if (state != DomainState::monitorReady) {
-            throw std::runtime_error("ensure_monitor_ready: bad state " + to_string(state));
+        if (state != DomainState::monitor_ready) {
+            throw std::runtime_error("ensure_monitor_ready: bad state " + toString(state));
         }
     }
 
@@ -58,7 +58,7 @@ struct BmbootFixture : public ::testing::Test
 
     static void throw_for_err(MaybeError err) {
         if (err.has_value()) {
-            throw std::runtime_error(to_string(*err));
+            throw std::runtime_error(toString(*err));
         }
     }
 
@@ -92,10 +92,10 @@ struct BmbootFixture : public ::testing::Test
         std::vector<uint8_t> program((std::istreambuf_iterator<char>(file)),
                                      std::istreambuf_iterator<char>());
 
-        throw_for_err(load_and_start_payload(domain, program));
+        throw_for_err(domain->loadAndStartPayload(program));
     }
 
-    DomainHandle domain;
+    std::unique_ptr<IDomain> domain;
 };
 
 static bool ContainsSubstring(std::string const& output, std::string const& substring) {
@@ -109,8 +109,8 @@ TEST_F(BmbootFixture, hello_world) {
 
     execute_payload("payload_hello_world.bin");
 
-    auto state = get_domain_state(domain);
-    ASSERT_EQ(state, DomainState::runningPayload);
+    auto state = domain->getState();
+    ASSERT_EQ(state, DomainState::running_payload);
 }
 
 TEST_F(BmbootFixture, access_violation) {
@@ -127,11 +127,11 @@ TEST_F(BmbootFixture, access_violation) {
 
     std::this_thread::sleep_for(50ms);
 
-    auto state = get_domain_state(domain);
-    ASSERT_EQ(state, DomainState::crashedPayload);
+    auto state = domain->getState();;
+    ASSERT_EQ(state, DomainState::crashed_payload);
 
     // Save core dump
-    auto err = dump_core(domain, "core");
+    auto err = domain->dumpCore("core");
     ASSERT_FALSE(err.has_value());
 
     // Ensure the core dump was created
@@ -144,10 +144,10 @@ TEST_F(BmbootFixture, access_violation) {
     EXPECT_PRED2(ContainsSubstring, output, "in access_invalid_memory()");
 
     // Reset domain
-    throw_for_err(reset_domain(domain));
+    throw_for_err(domain->terminatePayload());
 
     execute_payload("payload_hello_world.bin");
 
-    state = get_domain_state(domain);
-    ASSERT_EQ(state, DomainState::runningPayload);
+    state = domain->getState();
+    ASSERT_EQ(state, DomainState::running_payload);
 }

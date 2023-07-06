@@ -1,4 +1,4 @@
-#include "bmboot_master.hpp"
+#include "bmboot/domain.hpp"
 
 #include <sstream>
 #include <thread>
@@ -17,38 +17,37 @@ int main(int argc, char** argv) {
 
     printf("assuming domain 'cpu1'\n");
 
-    auto maybe_domain = bmboot_m::open_domain(bmboot::Domain::cpu1);
+    auto maybe_domain = bmboot::IDomain::open(bmboot::DomainIndex::cpu1);
 
-    if (!std::holds_alternative<bmboot_m::DomainHandle>(maybe_domain)) {
+    if (!std::holds_alternative<std::unique_ptr<bmboot::IDomain>>(maybe_domain)) {
         fprintf(stderr, "open_domain: error: %s\n",
-                to_string(std::get<bmboot::ErrorCode>(maybe_domain)).c_str());
+                toString(std::get<bmboot::ErrorCode>(maybe_domain)).c_str());
         return -1;
     }
 
-    auto domain = std::get<bmboot_m::DomainHandle>(maybe_domain);
+    auto domain = std::move(std::get<std::unique_ptr<bmboot::IDomain>>(maybe_domain));
 
-    if (bmboot_m::get_domain_state(domain) == bmboot::DomainState::inReset) {
+    if (domain->getState() == bmboot::DomainState::in_reset) {
         fprintf(stderr, "console: implicitly intializing domain\n");
 
-        auto err = bmboot_m::startup_domain(domain);
+        auto err = domain->startup();
 
         if (err.has_value()) {
-            fprintf(stderr, "startup_domain: error: %s\n", to_string(*err).c_str());
+            fprintf(stderr, "startup_domain: error: %s\n", toString(*err).c_str());
             return -1;
         }
     }
 
-    if (bmboot_m::get_domain_state(domain) == bmboot::DomainState::monitorReady) {
+    if (domain->getState() == bmboot::DomainState::monitor_ready) {
         fprintf(stderr, "console: starting dummy payload to enable hot-reload\n");
 
-        // we _know_ that this will time out, don't bother checking the result
-        bmboot_m::start_payload_at(domain, 0xbaadf00d);
+        domain->startDummyPayload();
     }
 
     std::stringstream stdout_accum;
 
     for (;;) {
-        int c = bmboot_m::stdout_getchar(domain);
+        int c = domain->getchar();
         if (c >= 0) {
             if (c == '\n') {
                 printf("%s\n", stdout_accum.str().c_str());

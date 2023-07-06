@@ -1,10 +1,10 @@
-#include "mach/mach_baremetal.hpp"
-#include "bmboot_internal.hpp"
-#include "bmboot_slave.hpp"
+#include "../mach/mach_baremetal.hpp"
+#include "../bmboot_internal.hpp"
+#include "bmboot/payload_runtime.hpp"
 
 extern "C" void enter_el1_payload(uintptr_t address);
 
-namespace bmboot_s {
+namespace bmboot {
 
 static void dummy_payload();
 
@@ -18,11 +18,11 @@ extern "C" int main() {
 
     mach::enable_IPI_reception(0);
 
-    ipc_vol.dom_state = DomainState::monitorReady;
+    ipc_vol.dom_state = DomainState::monitor_ready;
 
     for (;;) {
-        if (ipc_vol.dom_state == DomainState::monitorReady && ipc_vol.mst_requested_state == DomainState::runningPayload) {
-            ipc_vol.dom_state = DomainState::startingPayload;
+        if (ipc_vol.dom_state == DomainState::monitor_ready && ipc_vol.mst_requested_state == DomainState::running_payload) {
+            ipc_vol.dom_state = DomainState::starting_payload;
 
             // FLush all I-cache. Overkill? Should also flush D-cache?
             mach::flush_icache();
@@ -35,7 +35,7 @@ extern "C" int main() {
                 enter_el1_payload(ipc_vol.mst_payload_entry_address);
             }
 
-            ipc_vol.dom_state = DomainState::monitorReady;
+            ipc_vol.dom_state = DomainState::monitor_ready;
         }
     }
 }

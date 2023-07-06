@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace bmboot_m {
+namespace bmboot {
 
 using std::as_bytes;
 using std::byte;
