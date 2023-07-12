@@ -1,3 +1,7 @@
+//! @file
+//! @brief  Machine-specific definitions
+//! @author Martin Cejp
+
 #pragma once
 
 #define memory_write_reorder_barrier() __asm volatile ("dmb ishst" : : : "memory")

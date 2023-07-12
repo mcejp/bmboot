@@ -1,3 +1,7 @@
+//! @file
+//! @brief  Machine-specific functions, Linux
+//! @author Martin Cejp
+
 #pragma once
 
 #include "bmboot.hpp"
@@ -8,13 +12,12 @@
 
 #define memory_write_reorder_barrier() __asm volatile ("dmb ishst" : : : "memory")
 
-namespace bmboot::mach {
+namespace bmboot::mach
+{
 
-using namespace bmboot;
+bool isZynqCpu1InReset(int devmem_fd);
+std::optional<ErrorCode> bootZynqCpu1(int devmem_fd, uintptr_t reset_address);
 
-bool is_zynq_cpu1_in_reset(int devmem_fd);
-std::optional<ErrorCode> boot_zynq_cpu1(int devmem_fd, uintptr_t reset_address);
-
-void send_ipi_message(int devmem_fd, std::span<const uint8_t> message);
+void sendIpiMessage(int devmem_fd, std::span<const uint8_t> message);
 
 }

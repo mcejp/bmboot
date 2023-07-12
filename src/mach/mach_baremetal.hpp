@@ -1,3 +1,7 @@
+//! @file
+//! @brief  Machine-specific functions, bare metal
+//! @author Martin Cejp
+
 #pragma once
 
 #include "bmboot.hpp"
@@ -5,16 +9,15 @@
 
 #include <span>
 
-namespace bmboot::mach {
+namespace bmboot::mach
+{
 
-using namespace bmboot;
+void flushICache();
 
-void flush_icache();
+void sendIpiMessage(std::span<const std::byte> message);
 
-void send_ipi_message(std::span<const std::byte> message);
-
-void enable_CPU_interrupts();
-void enable_IPI_reception(int src_channel);
-void setup_interrupt(int ch, int target_cpu);
+void enableCpuInterrupts();
+void enableIpiReception(int src_channel);
+void setupInterrupt(int ch, int target_cpu);
 
 }

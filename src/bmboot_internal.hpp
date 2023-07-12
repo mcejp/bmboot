@@ -1,3 +1,7 @@
+//! @file
+//! @brief  Internal definitons
+//! @author Martin Cejp
+
 #pragma once
 
 #include <cstdint>
@@ -5,7 +9,8 @@
 
 #include "cpu_state.hpp"
 
-namespace bmboot_internal {
+namespace bmboot::internal
+{
 
 // We are assuming a coherent memory system
 // TODO: multiple definitions will be needed for different domains
@@ -20,7 +25,8 @@ constexpr inline uintptr_t  PAYLOAD_MAX_SIZE =      0x01FE'0000;        // code,
 using Cookie = uint32_t;
 constexpr inline Cookie MONITOR_CODE_COOKIE = 0x7150ABCD;
 
-enum {
+enum
+{
     IPI_REQ_KILL = 0x01,            // request to kill the payload & return to 'ready' state
 };
 
@@ -28,7 +34,8 @@ enum {
 // TODO: instead of mst_ and dom_ prefixes, use sub-structures
 //
 // zeroed in bmboot::startup_domain
-struct IpcBlock {
+struct IpcBlock
+{
     // mst_ prefix -> written by manager
     uint32_t mst_requested_state;
     uintptr_t mst_payload_entry_address;

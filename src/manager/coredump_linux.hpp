@@ -1,3 +1,7 @@
+//! @file
+//! @brief  Core dump generation
+//! @author Martin Cejp
+
 #pragma once
 
 #include "../cpu_state.hpp"
@@ -6,16 +10,18 @@
 #include <cstdint>
 #include <span>
 
-namespace bmboot {
+namespace bmboot::internal
+{
 
-struct MemorySegment {
+struct MemorySegment
+{
     size_t start_address, size;
     void const* ptr;
 };
 
-void write_core_dump(char const *fn,
-                     std::span<MemorySegment const> segments,
-                     Aarch64_Regs const& the_regs,
-                     Aarch64_FpRegs const& fpregs);
+void writeCoreDump(char const *fn,
+                   std::span<MemorySegment const> segments,
+                   Aarch64_Regs const& the_regs,
+                   Aarch64_FpRegs const& fpregs);
 
 }

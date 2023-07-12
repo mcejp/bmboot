@@ -13,7 +13,6 @@ Bmboot docs
    external-requirements
    ipi
    memory-map
-   payload
    testing
    api-base
    api-manager

@@ -3,11 +3,13 @@
 #include "sleep.h"
 
 [[gnu::noinline]] [[noreturn]]
-static void access_invalid_memory() {
+static void access_invalid_memory()
+{
     *(volatile int*)0x00F0000000 = 123;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     bmboot::notifyPayloadStarted();
 
     // must not be too fast, otherwise it triggers payloadCrashedDuringStartup

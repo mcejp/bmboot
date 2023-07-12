@@ -89,6 +89,9 @@ Key questions and design decisions
    Answer: if EL3.IRQ is set, IRQs cannot be masked by EL1
 
 
+.. question:: How to manage memory map so that there is a single source of truth?
+
+
 .. question:: How to trace down original executable given a core dump?
    :id: Q_CORE_ID
 

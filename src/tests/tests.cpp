@@ -18,7 +18,8 @@ struct BmbootFixture : public ::testing::Test
 
         auto maybe_domain = IDomain::open(which_domain);
 
-        if (!std::holds_alternative<std::unique_ptr<IDomain>>(maybe_domain)) {
+        if (!std::holds_alternative<std::unique_ptr<IDomain>>(maybe_domain))
+        {
             throw std::runtime_error("IDomain::open: error: " + toString(std::get<bmboot::ErrorCode>(maybe_domain)));
         }
 
@@ -26,28 +27,33 @@ struct BmbootFixture : public ::testing::Test
 
         auto state = domain->getState();
 
-        if (state == DomainState::in_reset) {
+        if (state == DomainState::in_reset)
+        {
             auto err = domain->startup();
 
-            if (err.has_value()) {
+            if (err.has_value())
+            {
                 throw std::runtime_error("IDomain::startup: error: " + toString(*err));
             }
 
             state = domain->getState();
         }
-        else if (state != DomainState::monitor_ready) {
+        else if (state != DomainState::monitor_ready)
+        {
             // attempt to reset it
 
             auto err = domain->terminatePayload();
 
-            if (err.has_value()) {
+            if (err.has_value())
+            {
                 throw std::runtime_error("IDomain::terminatePayload: error: " + toString(*err));
             }
 
             state = domain->getState();
         }
 
-        if (state != DomainState::monitor_ready) {
+        if (state != DomainState::monitor_ready)
+        {
             throw std::runtime_error("ensure_monitor_ready: bad state " + toString(state));
         }
     }
@@ -56,36 +62,44 @@ struct BmbootFixture : public ::testing::Test
     {
     }
 
-    static void throw_for_err(MaybeError err) {
-        if (err.has_value()) {
+    static void throw_for_err(MaybeError err)
+    {
+        if (err.has_value())
+        {
             throw std::runtime_error(toString(*err));
         }
     }
 
-    std::string execute_command_and_capture_output(std::string const& command) {
+    std::string execute_command_and_capture_output(std::string const& command)
+    {
         FILE* pipe = popen(command.c_str(), "r");
-        if (!pipe) {
+        if (!pipe)
+        {
             throw std::runtime_error("Failed to execute command: " + std::string(strerror(errno)));
         }
 
         std::stringstream output_stream;
         char buffer[128];
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+        {
             output_stream << buffer;
         }
 
         int exit_code = pclose(pipe);
-        if (exit_code != 0) {
+        if (exit_code != 0)
+        {
             throw std::runtime_error("Command exited with an error (exit code: " + std::to_string(exit_code) + ")");
         }
 
         return output_stream.str();
     }
 
-    void execute_payload(const char* filename) const {
+    void execute_payload(const char* filename) const
+    {
         std::ifstream file(filename, std::ios::binary);
 
-        if (!file) {
+        if (!file)
+        {
             throw std::runtime_error((std::string) "failed to open " + filename);
         }
 
@@ -98,11 +112,13 @@ struct BmbootFixture : public ::testing::Test
     std::unique_ptr<IDomain> domain;
 };
 
-static bool ContainsSubstring(std::string const& output, std::string const& substring) {
+static bool ContainsSubstring(std::string const& output, std::string const& substring)
+{
     return output.find(substring) != std::string::npos;
 }
 
-TEST_F(BmbootFixture, hello_world) {
+TEST_F(BmbootFixture, hello_world)
+{
     // synopsis of test:
     // 1. load payload_hello_world
     // 2. assert that it starts correctly
@@ -113,7 +129,8 @@ TEST_F(BmbootFixture, hello_world) {
     ASSERT_EQ(state, DomainState::running_payload);
 }
 
-TEST_F(BmbootFixture, access_violation) {
+TEST_F(BmbootFixture, access_violation)
+{
     // synopsis of test:
     // 1. load payload_access_violation
     // 2. assert that it crashes

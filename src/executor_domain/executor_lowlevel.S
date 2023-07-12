@@ -1,8 +1,12 @@
-.global enter_el1_payload
+//! @file
+//! @brief  Low-level executor functions (implemented in assembly).
+//! @author Martin Cejp
+
+.global enterEL1Payload
 
 // Reference: ARM DAI 0527A Bare-metal Boot Code for ARMv8-A Processors
 
-enter_el1_payload:
+enterEL1Payload:
 		// Initialize SCTLR_EL2 and HCR_EL2 to save values before entering EL2.
 		MSR SCTLR_EL2, XZR
 		MSR HCR_EL2, XZR
@@ -41,10 +45,10 @@ el2_entry:
 		ERET
 
 
-.global save_FPU_state
+.global saveFpuState
 
 // Adapted from asm_vectors.S. Layout corresponds to Aarch64_FpRegs from cpu_state.hpp
-save_FPU_state:
+saveFpuState:
 	stp	q0,q1, [x0], #0x20
 	stp	q2,q3, [x0], #0x20
 	stp	q4,q5, [x0], #0x20

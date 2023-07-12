@@ -1,3 +1,7 @@
+//! @file
+//! @brief  Runtime functions for the payload
+//! @author Martin Cejp
+
 #include "../bmboot_internal.hpp"
 #include "bmboot/payload_runtime.hpp"
 #include "../mach/mach_baremetal_defs.hpp"
@@ -6,11 +10,12 @@
 
 #include "xpseudo_asm.h"
 
-namespace bmboot {
+using namespace bmboot;
+using namespace bmboot::internal;
 
-static auto& ipc_block = *(bmboot_internal::IpcBlock*) bmboot_internal::MONITOR_IPC_START;
+static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
 
-void notifyPayloadCrashed(const char* desc, uintptr_t address) {
+void bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address) {
     ipc_block.dom_fault_pc = address;
     ipc_block.dom_fault_el = mfcp(currentEL);
     strncpy(ipc_block.dom_fault_desc, desc, sizeof(ipc_block.dom_fault_desc));
@@ -20,15 +25,16 @@ void notifyPayloadCrashed(const char* desc, uintptr_t address) {
     memory_write_reorder_barrier();
 }
 
-void notifyPayloadStarted() {
+void bmboot::notifyPayloadStarted() {
     ipc_block.dom_state = DomainState::running_payload;
 }
 
-int writeToStdout(void const* data, size_t size) {
+int bmboot::writeToStdout(void const* data, size_t size) {
     auto data_bytes = static_cast<uint8_t const*>(data);
 
     size_t wrote = 0;
 
+    // Here we want to be very conservative to be absolutely certain we will not overflow the buffer
     if (ipc_block.dom_stdout_wrpos >= sizeof(ipc_block.dom_stdout_buf)) {
         auto weird = ipc_block.dom_stdout_wrpos;
         ipc_block.dom_stdout_wrpos = 0;
@@ -57,6 +63,4 @@ int writeToStdout(void const* data, size_t size) {
     }
 
     return wrote;
-}
-
 }

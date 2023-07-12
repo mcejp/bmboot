@@ -15,11 +15,8 @@ General
 Utility functions
 =================
 
+.. doxygenfunction:: parseDomainIndex
+
 .. doxygenfunction:: toString(bmboot::DomainState state)
 
 .. doxygenfunction:: toString(bmboot::ErrorCode err)
-
-
-..
-   .. doxygennamespace:: bmboot
-      :content-only:

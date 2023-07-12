@@ -19,6 +19,8 @@ Domain initialization & state
 Payload execution
 =================
 
+.. doxygenfunction:: bmboot::IDomain::ensureReadyToLoadPayload
+
 .. doxygenfunction:: bmboot::IDomain::loadAndStartPayload
 
 .. doxygenfunction:: bmboot::IDomain::getchar

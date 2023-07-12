@@ -1,11 +1,13 @@
 #include "bmboot/payload_runtime.hpp"
-#include "../../bmboot_internal.hpp"
+#include "../executor_lowlevel.hpp"
 #include "../../mach/mach_baremetal_defs.hpp"
 
 #include "bspconfig.h"
 #include "xipipsu.h"
 #include "xscugic.h"
 #include "xpseudo_asm.h"
+
+// ************************************************************
 
 #if EL3
 #define get_ELR() mfcp(ELR_EL3)
@@ -17,9 +19,12 @@
 #define EL_STRING "EL1"
 #endif
 
-static auto& ipc_block = *(bmboot_internal::IpcBlock*) bmboot_internal::MONITOR_IPC_START;
+using namespace bmboot;
+using namespace bmboot::internal;
 
-extern "C" void save_FPU_state(Aarch64_FpRegs&);
+static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
+
+// ************************************************************
 
 static void fill_crash_info(uintptr_t pc, uintptr_t sp, uint64_t* regs) {
     ipc_block.dom_regs.pc = pc;
@@ -33,22 +38,22 @@ static void fill_crash_info(uintptr_t pc, uintptr_t sp, uint64_t* regs) {
     }
 }
 
-extern "C" {
+// ************************************************************
 
-void FIQInterrupt(void)
+extern "C" void FIQInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot::notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
+    notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
-extern "C" void _boot();
+// ************************************************************
 
-void IRQInterrupt(void)
+extern "C" void IRQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
-    if ((iar & XSCUGIC_ACK_INTID_MASK) == bmboot::mach::IPI_CH0_GIC_CHANNEL) {
+    if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::IPI_CH0_GIC_CHANNEL) {
         // acknowledge IPI
         auto source_mask = XIpiPsu_ReadReg(XPAR_PSU_IPI_0_S_AXI_BASEADDR, XIPIPSU_ISR_OFFSET);
         XIpiPsu_WriteReg(XPAR_PSU_IPI_0_S_AXI_BASEADDR, XIPIPSU_ISR_OFFSET, source_mask);
@@ -56,28 +61,30 @@ void IRQInterrupt(void)
         XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
 
         // IRQ triggered by APU?
-        if (source_mask & (1 << bmboot::mach::IPI_SRC_APU)) {
+        if (source_mask & (1 << mach::IPI_SRC_APU)) {
             // reset monitor -- jump to entry
             _boot();
         }
     }
 
     auto fault_address = get_ELR();
-    bmboot::notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
+    notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
 
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
     for (;;) {}
 }
 
+// ************************************************************
+
 // rethink: currently this gets compiled separately for EL1 and EL3. but do we want that?
 // shouldn't all EL1 errors trigger a switch into EL3 and be handled there?
 //
 // also because we can end up here EITHER due to an EL3 issue or an EL1 issue that trapped to EL3
-void SynchronousInterrupt(uint64_t* the_sp)
+extern "C" void SynchronousInterrupt(uint64_t* the_sp)
 {
     auto fault_address = get_ELR();
 
-    save_FPU_state(ipc_block.dom_fpregs);
+    saveFpuState(ipc_block.dom_fpregs);
 
     ipc_block.dom_regs.pstate = get_SPSR();
 
@@ -85,15 +92,15 @@ void SynchronousInterrupt(uint64_t* the_sp)
     // BUG: this does not save all GPRs!
     fill_crash_info(fault_address, (uintptr_t)(the_sp + 32), the_sp);
 
-    bmboot::notifyPayloadCrashed("SynchronousInterrupt " EL_STRING, fault_address);
+    notifyPayloadCrashed("SynchronousInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
 
-void SErrorInterrupt(void)
+// ************************************************************
+
+extern "C" void SErrorInterrupt(void)
 {
     auto fault_address = get_ELR();
-    bmboot::notifyPayloadCrashed("SErrorInterrupt " EL_STRING, fault_address);
+    notifyPayloadCrashed("SErrorInterrupt " EL_STRING, fault_address);
     for (;;) {}
-}
-
 }

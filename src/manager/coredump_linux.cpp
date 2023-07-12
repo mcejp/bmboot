@@ -41,21 +41,26 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace bmboot {
+using namespace bmboot;
+using namespace bmboot::internal;
 
 using std::as_bytes;
 using std::byte;
 using std::span;
 
+// ************************************************************
+
 template<size_t alignment>
-static auto make_padding_span(size_t length) {
+static auto make_padding_span(size_t length)
+{
     static const byte zeros[alignment - 1] {};
     auto padding_needed = (length % alignment) == 0 ? 0 : (alignment - length % alignment);
 
     return span{zeros, padding_needed};
 }
 
-static bool write_note(FILE* f, const char* name, Elf64_Word type, span<byte const> desc) {
+static bool write_note(FILE* f, const char* name, Elf64_Word type, span<byte const> desc)
+{
     auto terminated_name_len = strlen(name) + 1;
     auto nhdr = Elf64_Nhdr { .n_namesz = (Elf64_Word) terminated_name_len,
                              .n_descsz = (Elf64_Word) desc.size(),
@@ -66,17 +71,21 @@ static bool write_note(FILE* f, const char* name, Elf64_Word type, span<byte con
     if (fwrite(&nhdr, 1, sizeof(nhdr), f) != sizeof(nhdr)
             || fwrite(name, 1, terminated_name_len, f) != terminated_name_len
             || fwrite(name_padding.data(), 1, name_padding.size(), f) != name_padding.size()
-            || fwrite(desc.data(), 1, desc.size(), f) != desc.size()) {
+            || fwrite(desc.data(), 1, desc.size(), f) != desc.size())
+    {
         return false;
     }
 
     return true;
 }
 
-void write_core_dump(char const *fn,
-                     span<MemorySegment const> segments,
-                     Aarch64_Regs const& the_regs,
-                     Aarch64_FpRegs const& fpregs) {
+// ************************************************************
+
+void internal::writeCoreDump(char const *fn,
+                             span<MemorySegment const> segments,
+                             Aarch64_Regs const& the_regs,
+                             Aarch64_FpRegs const& fpregs)
+{
     // Note: This code is derived from an older implementation by Google; it is quite fragile in how the offsets are
     //       computed and separate concerns are mixed together.
     //       A cleaner solution would be to prepare a high-level representation of the ELF structure in memory and then
@@ -106,7 +115,8 @@ void write_core_dump(char const *fn,
     ehdr.e_phnum    = segments.size() + 1;
     ehdr.e_shentsize= sizeof(Elf64_Shdr);
 
-    if (fwrite(&ehdr, 1, sizeof(ehdr), f) != sizeof(ehdr)) {
+    if (fwrite(&ehdr, 1, sizeof(ehdr), f) != sizeof(ehdr))
+    {
         return;
     }
 
@@ -122,7 +132,8 @@ void write_core_dump(char const *fn,
     phdr.p_offset   = offset;
     phdr.p_filesz   = filesz;
 
-    if (fwrite(&phdr, 1, sizeof(phdr), f) != sizeof(phdr)) {
+    if (fwrite(&phdr, 1, sizeof(phdr), f) != sizeof(phdr))
+    {
         return;
     }
 
@@ -132,12 +143,14 @@ void write_core_dump(char const *fn,
     phdr.p_paddr    = 0;
     auto note_align = phdr.p_align - ((offset + filesz) % phdr.p_align);
 
-    if (note_align == phdr.p_align) {
+    if (note_align == phdr.p_align)
+    {
         note_align = 0;
     }
 
     offset         += note_align;
-    for (const auto& seg : segments) {
+    for (const auto& seg : segments)
+    {
         offset       += filesz;
         filesz        = seg.size;
         phdr.p_offset = offset;
@@ -150,7 +163,8 @@ void write_core_dump(char const *fn,
         phdr.p_filesz = filesz;
         phdr.p_flags  = PF_W; //mappings[i].flags;
 
-        if (fwrite(&phdr, 1, sizeof(phdr), f) != sizeof(phdr)) {
+        if (fwrite(&phdr, 1, sizeof(phdr), f) != sizeof(phdr))
+        {
             return;
         }
     }
@@ -160,7 +174,8 @@ void write_core_dump(char const *fn,
     // TODO: could include payload name & hash (if we had those)
     strncpy(prpsinfo.pr_psargs, "(bmboot payload)", sizeof(prpsinfo.pr_psargs));
 
-    if (!write_note(f, "CORE", NT_PRPSINFO, as_bytes(span{&prpsinfo, 1}))) {
+    if (!write_note(f, "CORE", NT_PRPSINFO, as_bytes(span{&prpsinfo, 1})))
+    {
         return;
     }
 
@@ -170,33 +185,37 @@ void write_core_dump(char const *fn,
     static_assert(sizeof(prstatus.pr_reg) == sizeof(the_regs));
     memcpy(&prstatus.pr_reg, &the_regs, sizeof(the_regs));
 
-    if (!write_note(f, "CORE", NT_PRSTATUS, as_bytes(span{&prstatus, 1}))) {
+    if (!write_note(f, "CORE", NT_PRSTATUS, as_bytes(span{&prstatus, 1})))
+    {
         return;
     }
 
     // FPU registers
-    if (!write_note(f, "CORE", NT_FPREGSET, as_bytes(span{&fpregs, 1}))) {
+    if (!write_note(f, "CORE", NT_FPREGSET, as_bytes(span{&fpregs, 1})))
+    {
         return;
     }
 
     // Align all following segments to multiples of page size
-    if (note_align) {
+    if (note_align)
+    {
         char scratch[note_align];
 
         memset(scratch, 0, sizeof(scratch));
-        if (fwrite(scratch, 1, sizeof(scratch), f) != sizeof(scratch)) {
+        if (fwrite(scratch, 1, sizeof(scratch), f) != sizeof(scratch))
+        {
             return;
         }
     }
 
     // Write all memory segments
-    for (const auto& seg : segments) {
-        if (/*(seg.flags & PF_W) &&*/ fwrite(seg.ptr, 1, seg.size, f) != seg.size) {
+    for (const auto& seg : segments)
+    {
+        if (/*(seg.flags & PF_W) &&*/ fwrite(seg.ptr, 1, seg.size, f) != seg.size)
+        {
             return;
         }
     }
 
     fclose(f);
-}
-
 }

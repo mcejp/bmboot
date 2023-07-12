@@ -1,13 +1,23 @@
+//! @file
+//! @brief  Machine-specific functions, Linux
+//! @author Martin Cejp
+
 #include "mach_linux.hpp"
-#include "../bmboot_internal.hpp"
 #include "../utility/mmap.hpp"
 
 #include <cstring>
 
+#define IPI_BUF_BASE_APU            0xFF990400
+#define IPI_BUF_APU_TO_APU_REQ      IPI_BUF_BASE_APU
+#define IPI_BUF_APU_TO_APU_RESP     (IPI_BUF_BASE_APU + 0x20)
+#define IPI_BUF_SIZE                0x20
 
-namespace bmboot::mach {
+using namespace bmboot;
+using namespace bmboot::mach;
 
-bool is_zynq_cpu1_in_reset(int devmem_fd) {
+// ************************************************************
+
+bool mach::isZynqCpu1InReset(int devmem_fd) {
     Mmap base_0xFD1A0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD1A0000);
 
     if (!base_0xFD1A0000) {
@@ -17,7 +27,9 @@ bool is_zynq_cpu1_in_reset(int devmem_fd) {
     return (base_0xFD1A0000.read32(0x0104) & (1 << 1)) != 0;
 }
 
-std::optional<ErrorCode> boot_zynq_cpu1(int devmem_fd, uintptr_t reset_address) {
+// ************************************************************
+
+std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_address) {
     Mmap base_0xFD1A0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD1A0000);
     Mmap base_0xFD5C0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD5C0000);
 
@@ -33,12 +45,9 @@ std::optional<ErrorCode> boot_zynq_cpu1(int devmem_fd, uintptr_t reset_address) 
     return {};
 }
 
-#define IPI_BUF_BASE_APU            0xFF990400
-#define IPI_BUF_APU_TO_APU_REQ      IPI_BUF_BASE_APU
-#define IPI_BUF_APU_TO_APU_RESP     (IPI_BUF_BASE_APU + 0x20)
-#define IPI_BUF_SIZE                0x20
+// ************************************************************
 
-void send_ipi_message(int devmem_fd, std::span<const uint8_t> message) {
+void mach::sendIpiMessage(int devmem_fd, std::span<const uint8_t> message) {
     Mmap base_0xFF990000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFF990000);
     Mmap base_0xFF300000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFF300000);
 
@@ -52,6 +61,4 @@ void send_ipi_message(int devmem_fd, std::span<const uint8_t> message) {
 
     // trigger interrupt
     base_0xFF300000.write32(0, 1);
-}
-
 }

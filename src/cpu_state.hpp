@@ -1,8 +1,16 @@
+//! @file
+//! @brief  CPU state structures
+//! @author Martin Cejp
+
 #pragma once
+
+namespace bmboot::internal
+{
 
 // this must correspond exactly to user_regs_struct from sys/user.h
 // not sure if we can just include that file directly and be sure it will match between Linux & bare metal
-struct Aarch64_Regs {
+struct Aarch64_Regs
+{
     unsigned long long regs[31];
     unsigned long long sp;
     unsigned long long pc;
@@ -16,3 +24,5 @@ struct Aarch64_FpRegs
     unsigned int fpsr;
     unsigned int fpcr;
 };
+
+}
