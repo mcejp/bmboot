@@ -27,14 +27,16 @@ static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
 // ************************************************************
 
 static void fill_crash_info(uintptr_t pc, uintptr_t sp, uint64_t* regs) {
-    ipc_block.dom_regs.pc = pc;
-    ipc_block.dom_regs.sp = sp;
-    ipc_block.dom_regs.regs[29] = *regs++;
-    ipc_block.dom_regs.regs[30] = *regs++;
+    auto& outbox = ipc_block.executor_to_manager;
+
+    outbox.regs.pc = pc;
+    outbox.regs.sp = sp;
+    outbox.regs.regs[29] = *regs++;
+    outbox.regs.regs[30] = *regs++;
 
     for (int i = 18; i >= 0; i -= 2) {
-        ipc_block.dom_regs.regs[i] = *regs++;
-        ipc_block.dom_regs.regs[i + 1] = *regs++;
+        outbox.regs.regs[i] = *regs++;
+        outbox.regs.regs[i + 1] = *regs++;
     }
 }
 
@@ -84,9 +86,9 @@ extern "C" void SynchronousInterrupt(uint64_t* the_sp)
 {
     auto fault_address = get_ELR();
 
-    saveFpuState(ipc_block.dom_fpregs);
+    saveFpuState(ipc_block.executor_to_manager.fpregs);
 
-    ipc_block.dom_regs.pstate = get_SPSR();
+    ipc_block.executor_to_manager.regs.pstate = get_SPSR();
 
     // TODO: specify the layout of saved registers
     // BUG: this does not save all GPRs!

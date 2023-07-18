@@ -104,6 +104,7 @@ elseif (BUILD_MONITOR)
             src/executor_domain/monitor.cpp
             src/bmboot_internal.hpp
             src/executor_domain/payload_runtime.cpp
+            src/utility/crc32.c
 
             # slightly wrong as this will indicate crashedPayload even if the fault is in the monitor
             src/executor_domain/zynqmp/vectors.cpp
@@ -245,6 +246,7 @@ else()
 
     add_executable(bmctl
             src/tools/bmctl.cpp
+            src/utility/crc32.c
             )
     target_link_libraries(bmctl PUBLIC bmboot_manager)
 
@@ -254,6 +256,7 @@ else()
     add_executable(bmtest
             src/tests/tests.cpp
             src/tools/bmtest.cpp
+            src/utility/crc32.c
             )
     target_link_libraries(bmtest PUBLIC bmboot_manager GTest::gtest pthread dl)
     target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-2.33.so -Wl,-rpath,/my-lib)

@@ -61,7 +61,7 @@ public:
     //! Load and execute the given payload.
     //!
     //! This operation is permissible only when the domain state is @link bmboot::monitor_ready monitor_ready@endlink.
-    virtual MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary) = 0;
+    virtual MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32) = 0;
 
     //! Read a character from the executor's standard output. This function should be polled on a regular basis.
     //!

@@ -161,7 +161,7 @@ void internal::writeCoreDump(char const *fn,
 //            if ((mappings[i].flags & PF_W) == 0)
 //                filesz      = 0;
         phdr.p_filesz = filesz;
-        phdr.p_flags  = PF_W; //mappings[i].flags;
+        phdr.p_flags  = PF_R | PF_X | PF_W; //mappings[i].flags;
 
         if (fwrite(&phdr, 1, sizeof(phdr), f) != sizeof(phdr))
         {

@@ -3,6 +3,7 @@
 //! @author Martin Cejp
 
 #include "bmboot/domain.hpp"
+#include "../utility/crc32.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -107,7 +108,7 @@ int main(int argc, char** argv)
             std::vector<uint8_t> program((std::istreambuf_iterator<char>(file)),
                                          std::istreambuf_iterator<char>());
 
-            auto err = domain->loadAndStartPayload(program);
+            auto err = domain->loadAndStartPayload(program, crc32(0, program.data(), program.size()));
 
             if (err.has_value())
             {

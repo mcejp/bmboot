@@ -50,7 +50,7 @@ public:
     MaybeError dumpCore(char const* filename) final;
     void dumpDebugInfo() final;
     MaybeError ensureReadyToLoadPayload() final;
-    MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary) final;
+    MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32) final;
     int getchar() final;
     CrashInfo getCrashInfo() final;
     DomainState getState() final;
@@ -60,22 +60,32 @@ public:
     void startDummyPayload() final
     {
         // we _know_ that this will time out, don't bother checking the result
-        startPayloadAt(0xbaadf00d);
+        startPayloadAt(0xbaadf00d, 0, 0);
     }
 
 private:
     MaybeError awaitMonitorStartup();
-    MaybeError startPayloadAt(uintptr_t entry_address);
+    MaybeError startPayloadAt(uintptr_t entry_address, size_t payload_size, uint32_t payload_crc32);
     MaybeError startup(std::span<uint8_t const> monitor_binary);
 
-    volatile IpcBlock& getIpcBlock()
+//    volatile IpcBlock& getIpcBlock()
+//    {
+//        return (volatile IpcBlock&) m_ipc_block;
+//    }
+
+    volatile const auto& getInbox()
     {
-        return (volatile IpcBlock&) m_ipc_block;
+        return m_ipc_block.executor_to_manager;
     }
 
-    IpcBlock& getIpcBlockNonvol()
+    volatile auto& getOutbox()
     {
-        return m_ipc_block;
+        return m_ipc_block.manager_to_executor;
+    }
+
+    auto& getInboxNonvolatile()
+    {
+        return m_ipc_block.executor_to_manager;
     }
 
     DomainIndex m_domain;
@@ -184,7 +194,7 @@ MaybeError Domain::dumpCore(char const* filename)
         return ErrorCode::mmap_failed;
     }
 
-    auto& ipc_vol = getIpcBlockNonvol();
+    auto& inbox = getInboxNonvolatile();
 
     static const MemorySegment segments[]
     {
@@ -193,8 +203,8 @@ MaybeError Domain::dumpCore(char const* filename)
 
     writeCoreDump(filename,
                   segments,
-                  ipc_vol.dom_regs,
-                  ipc_vol.dom_fpregs);
+                  inbox.regs,
+                  inbox.fpregs);
 
     return {};
 }
@@ -203,9 +213,9 @@ MaybeError Domain::dumpCore(char const* filename)
 
 void Domain::dumpDebugInfo()
 {
-    auto& ipc_vol = getIpcBlock();
-
-    fprintf(stderr, "debug: rdpos=%3zu wrpos=%3zu\n", ipc_vol.mst_stdout_rdpos, ipc_vol.dom_stdout_wrpos);
+    fprintf(stderr, "debug: rdpos=%3zu wrpos=%3zu\n",
+            getOutbox().stdout_rdpos,
+            getInbox().stdout_wrpos);
 }
 
 // ************************************************************
@@ -238,18 +248,16 @@ MaybeError Domain::ensureReadyToLoadPayload()
 
 CrashInfo Domain::getCrashInfo()
 {
-    auto& ipc_vol = getIpcBlock();
+    auto& inbox = getInbox();
 
-    return CrashInfo { .pc = ipc_vol.dom_fault_pc, .desc = std::string((char const*) ipc_vol.dom_fault_desc, sizeof(ipc_vol.dom_fault_desc)) };
+    return CrashInfo { .pc = inbox.fault_pc, .desc = std::string((char const*) inbox.fault_desc, sizeof(inbox.fault_desc)) };
 }
 
 // ************************************************************
 
 DomainState Domain::getState()
 {
-    auto& ipc_vol = getIpcBlock();
-
-    auto state_raw = ipc_vol.dom_state;
+    auto state_raw = getInbox().state;
 
     if (state_raw <= (int)DomainState::invalid_state)
     {
@@ -265,18 +273,19 @@ DomainState Domain::getState()
 
 int Domain::getchar()
 {
-    auto& ipc_vol = getIpcBlock();
+    auto const& inbox = getInbox();
+    auto& outbox = getOutbox();
 
-    if (ipc_vol.mst_stdout_rdpos >= sizeof(ipc_vol.dom_stdout_buf))
+    if (outbox.stdout_rdpos >= sizeof(inbox.stdout_buf))
     {
-        printf("bmboot: unexpected mst_stdout_rdpos %zx, resetting to 0\n", ipc_vol.mst_stdout_rdpos);
-        ipc_vol.mst_stdout_rdpos = 0;
+        printf("bmboot: unexpected mst_stdout_rdpos %zx, resetting to 0\n", outbox.stdout_rdpos);
+        outbox.stdout_rdpos = 0;
     }
 
-    if (ipc_vol.mst_stdout_rdpos != ipc_vol.dom_stdout_wrpos)
+    if (outbox.stdout_rdpos != inbox.stdout_wrpos)
     {
-        char c = ipc_vol.dom_stdout_buf[ipc_vol.mst_stdout_rdpos];
-        ipc_vol.mst_stdout_rdpos = (ipc_vol.mst_stdout_rdpos + 1) % sizeof(ipc_vol.dom_stdout_buf);
+        char c = inbox.stdout_buf[outbox.stdout_rdpos];
+        outbox.stdout_rdpos = (outbox.stdout_rdpos + 1) % sizeof(inbox.stdout_buf);
         return c;
     }
     else
@@ -287,7 +296,7 @@ int Domain::getchar()
 
 // ************************************************************
 
-MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary)
+MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32)
 {
     // First, ensure we are in 'ready' state
     if (getState() != DomainState::monitor_ready)
@@ -297,7 +306,7 @@ MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary)
 
     load_to_physical_memory(PAYLOAD_START, payload_binary);
 
-    return startPayloadAt(PAYLOAD_START);
+    return startPayloadAt(PAYLOAD_START, payload_binary.size(), payload_crc32);
 }
 
 // ************************************************************
@@ -369,7 +378,7 @@ DomainInstanceOrErrorCode IDomain::open(DomainIndex domain)
 
 // ************************************************************
 
-MaybeError Domain::startPayloadAt(uintptr_t entry_address)
+MaybeError Domain::startPayloadAt(uintptr_t entry_address, size_t payload_size, uint32_t payload_crc32)
 {
     // First, ensure we are in 'ready' state
     if (getState() != DomainState::monitor_ready)
@@ -377,13 +386,23 @@ MaybeError Domain::startPayloadAt(uintptr_t entry_address)
         return ErrorCode::bad_domain_state;
     }
 
-    auto& ipc_vol = getIpcBlock();
+    auto const& inbox = getInbox();
+    auto& outbox = getOutbox();
+
+    if (inbox.cmd_ack != outbox.cmd_seq)
+    {
+        return ErrorCode::bad_domain_state;
+    }
 
     // flush any residual content of the stdout buffer by setting our read position equal to the write position
-    ipc_vol.mst_stdout_rdpos = ipc_vol.dom_stdout_wrpos;
+    outbox.stdout_rdpos = inbox.stdout_wrpos;
 
-    ipc_vol.mst_payload_entry_address = entry_address;
-    ipc_vol.mst_requested_state = DomainState::running_payload;
+    outbox.payload_entry_address = entry_address;
+    outbox.payload_size = payload_size;
+    outbox.payload_crc = payload_crc32;
+    outbox.cmd = Command::start_payload;
+    memory_write_reorder_barrier();
+    outbox.cmd_seq = (outbox.cmd_seq + 1);
 
     // wait up to 1sec for domain to come to life
     constexpr int timeout_msec = 1000;
@@ -392,6 +411,18 @@ MaybeError Domain::startPayloadAt(uintptr_t entry_address)
     for (int i = 0; i < timeout_msec / poll_period_msec; i++)
     {
         usleep(poll_period_msec * 1000);
+
+        if (inbox.cmd_ack == outbox.cmd_seq)
+        {
+            if (inbox.cmd_resp == Response::crc_mismatched)
+            {
+                return ErrorCode::payload_checksum_mismatch;
+            }
+            else
+            {
+                // Otherwise we expect Response::crc_ok, but we are waiting for DomainState::running_payload anyway
+            }
+        }
 
         auto state = getState();
 
@@ -424,8 +455,6 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
     {
         return ErrorCode::bad_domain_state;
     }
-
-    auto& ipc_vol = getIpcBlock();
 
     auto devmem = get_devmem_handle();
     if (std::holds_alternative<ErrorCode>(devmem))
@@ -460,8 +489,7 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
     munmap(code_area, MONITOR_CODE_SIZE);
 
     // initialize IPC block
-    memset((void*) &ipc_vol, 0, sizeof(ipc_vol));
-    ipc_vol.mst_requested_state = DomainState::monitor_ready;
+    memset((void*) &m_ipc_block, 0, MONITOR_IPC_SIZE);
 
     // flush the IPC region to DDR (since the SCU is not in effect yet and CPUn will come up with cold caches)
     __clear_cache(&m_ipc_block, (uint8_t*) &m_ipc_block + MONITOR_IPC_SIZE);
@@ -483,15 +511,14 @@ MaybeError Domain::terminatePayload()
         return ErrorCode::bad_domain_state;
     }
 
-    auto& ipc_vol = getIpcBlock();
-
     auto devmem = get_devmem_handle();
     if (std::holds_alternative<ErrorCode>(devmem))
     {
         return std::get<ErrorCode>(devmem);
     }
 
-    ipc_vol.mst_requested_state = DomainState::monitor_ready;
+    // Clear any pending command (although none should have been sent in the current state)
+    getOutbox().cmd = Command::noop;
 
     // TODO: Clean up a bit; these values have no meaning, but if/when we have multiple different IPIs, we will use
     //       this buffer to signal which one is being invoked.

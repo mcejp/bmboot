@@ -30,29 +30,56 @@ enum
     IPI_REQ_KILL = 0x01,            // request to kill the payload & return to 'ready' state
 };
 
+enum Command
+{
+    noop = 0x00,
+    start_payload = 0x01,
+};
+
+enum Response
+{
+    crc_ok,
+    crc_mismatched,
+};
+
 // TODO: add assertions for sizeof(IpcBlock) vs mmap sizes
 // TODO: instead of mst_ and dom_ prefixes, use sub-structures
 //
 // zeroed in bmboot::startup_domain
 struct IpcBlock
 {
-    // mst_ prefix -> written by manager
-    uint32_t mst_requested_state;
-    uintptr_t mst_payload_entry_address;
+    struct
+    {
+        Command cmd;
+        uint32_t cmd_seq;
 
-    // dom_ prefix -> written by executor domain
-    uint32_t dom_state;
-    uint32_t dom_fault_el;
-    uintptr_t dom_fault_pc;     // code address of fault
-    char dom_fault_desc[32];
+        uintptr_t payload_entry_address;
+        size_t payload_size;
+        uint32_t payload_crc;
 
-    Aarch64_Regs dom_regs;
-    Aarch64_FpRegs dom_fpregs;
+        size_t stdout_rdpos;
+    }
+    manager_to_executor;
 
-    // standard output dom->mst
-    size_t mst_stdout_rdpos;
-    size_t dom_stdout_wrpos;
-    char dom_stdout_buf[1024];
+    struct
+    {
+        uint32_t state;
+
+        uint32_t cmd_ack;
+        Response cmd_resp;
+
+        uint32_t fault_el;
+        uintptr_t fault_pc;     // code address of fault
+        char fault_desc[32];
+
+        Aarch64_Regs regs;
+        Aarch64_FpRegs fpregs;
+
+        // standard output (circular buffer)
+        size_t stdout_wrpos;
+        char stdout_buf[1024];
+    }
+    executor_to_manager;
 };
 
 }
