@@ -158,7 +158,10 @@ TEST_F(BmbootFixture, access_violation)
 
     // Invoke gdb in batch mode to extract the stack trace
     auto output = execute_command_and_capture_output("gdb --batch -n -ex bt payload_access_violation.elf core");
-    EXPECT_PRED2(ContainsSubstring, output, "in access_invalid_memory()");
+    // Watch out; the format changes depending on whether the payload was built with debug information:
+    // Release:        in access_invalid_memory()
+    // RelWithDebInfo: in access_invalid_memory () at ...
+    EXPECT_PRED2(ContainsSubstring, output, "in access_invalid_memory");
 
     // Reset domain
     throw_for_err(domain->terminatePayload());
