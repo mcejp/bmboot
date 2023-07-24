@@ -82,12 +82,12 @@ int main(int argc, char** argv)
     }
     else if (strcmp(argv[1], "exec") == 0)
     {
-        if (argc != 3)
+        if (argc != 4)
         {
             return usage();
         }
 
-        auto payload_filename = argv[2];
+        auto payload_filename = argv[3];
 
         auto state = domain->getState();
 
