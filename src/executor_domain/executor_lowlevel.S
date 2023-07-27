@@ -18,7 +18,7 @@ enterEL1Payload:
 		ORR X1, X1, #(1<<10) // RW EL2 Execution state is AArch64.
 		orr x1, x1, #(1<<3) // EA Take External Abort and SError to EL3
 		orr x1, x1, #(1<<2) // FIQ Take FIQs to EL3
-		orr x1, x1, #(1<<1) // IRQ Take IRQs to EL3
+		// IRQs are taken to EL1
 		ORR X1, X1, #(1<<0) // NS EL1 is Non-secure world.
 		MSR SCR_EL3, x1
 		MOV X1, #0b01001 // DAIF=0000

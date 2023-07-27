@@ -44,17 +44,9 @@ static void fill_crash_info(uintptr_t pc, uintptr_t sp, uint64_t* regs) {
 
 extern "C" void FIQInterrupt(void)
 {
-    auto fault_address = get_ELR();
-    notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
-    for (;;) {}
-}
-
-// ************************************************************
-
-extern "C" void IRQInterrupt(void)
-{
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
+#if EL3
     if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::IPI_CH0_GIC_CHANNEL) {
         // acknowledge IPI
         auto source_mask = XIpiPsu_ReadReg(XPAR_PSU_IPI_0_S_AXI_BASEADDR, XIPIPSU_ISR_OFFSET);
@@ -68,10 +60,26 @@ extern "C" void IRQInterrupt(void)
             _boot();
         }
     }
+#endif
 
-    auto fault_address = get_ELR();
+    auto fault_address = iar; //get_ELR();
+    notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
+
+    // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
+    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
+    for (;;) {}
+}
+
+// ************************************************************
+
+extern "C" void IRQInterrupt(void)
+{
+    auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
+
+    auto fault_address = iar; //get_ELR();
     notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
 
+    // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
     for (;;) {}
 }

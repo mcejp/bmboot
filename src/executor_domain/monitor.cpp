@@ -23,7 +23,7 @@ extern "C" int main()
 
     // hardcoded ZynqMP CPU1
     mach::enableCpuInterrupts();
-    mach::setupInterrupt(bmboot::mach::IPI_CURRENT_CPU_GIC_CHANNEL, bmboot::mach::SELF_CPU_INDEX);
+    mach::enableSharedPeripheralInterruptAndRouteToCpu(mach::IPI_CURRENT_CPU_GIC_CHANNEL, mach::SELF_CPU_INDEX);
 
     mach::enableIpiReception(0);
 

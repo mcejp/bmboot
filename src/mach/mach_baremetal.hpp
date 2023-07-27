@@ -18,6 +18,12 @@ void sendIpiMessage(std::span<const std::byte> message);
 
 void enableCpuInterrupts();
 void enableIpiReception(int src_channel);
-void setupInterrupt(int ch, int target_cpu);
+
+//! Route a given Shared Peripheral Interrupt (SPI) to the given CPU and make sure it is not masked.
+//!
+//! See ARM IHI 0048B.b for more details
+//! \param ch
+//! \param target_cpu
+void enableSharedPeripheralInterruptAndRouteToCpu(int ch, int target_cpu);
 
 }
