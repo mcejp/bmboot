@@ -30,7 +30,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
             src/executor_domain/payload_runtime.cpp
             src/executor_domain/executor_lowlevel.S        # TODO: only parts of this are useful, others will be linked in pointlessly
 
-            ${BMBOOT_BSP_EL1_HOME}/libsrc/standalone_v7_1/src/asm_vectors.S
+            src/executor_domain/zynqmp/asm_vectors.S
             )
 
     target_compile_features(bmboot_payload_runtime PUBLIC cxx_std_20)
@@ -108,7 +108,7 @@ elseif (BUILD_MONITOR)
 
             # slightly wrong as this will indicate crashedPayload even if the fault is in the monitor
             src/executor_domain/zynqmp/vectors.cpp
-            src/executor_domain/zynqmp/el3/asm_vectors.S
+            src/executor_domain/zynqmp/asm_vectors.S
             )
 
     # -----------------------------------------------------------------------------------------------------------

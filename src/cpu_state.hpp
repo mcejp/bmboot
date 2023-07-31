@@ -11,7 +11,7 @@ namespace bmboot::internal
 // not sure if we can just include that file directly and be sure it will match between Linux & bare metal
 struct Aarch64_Regs
 {
-    unsigned long long regs[31];
+    unsigned long long regs[31];        // note that there's only 31 general-purpose registers. x30 also serves as LR
     unsigned long long sp;
     unsigned long long pc;
     unsigned long long pstate;

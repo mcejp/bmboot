@@ -74,6 +74,52 @@
 	stp 	X29,X30, [sp,#-0x10]!
 .endm
 
+.macro saveregister_full
+    // Registers are saved in the following order (see also struct Aarch64_Regs):
+    //       x0    x1  ... x28   x29   x30   SP   PC  PSTATE
+    // at: -110  -108  ... -30   -28   -20  -18  -10     -08 (hex) with respect to SP-at-entry
+    //
+    // (instead of saving SP, it could be reconstructed later, but this way we get it in a layout ready for core dump)
+
+    // Start by saving these:
+    //   [sp, #-0x40] <== x26; x27
+    //   [sp, #-0x30] <== x28; x29
+    stp x26, x27, [sp, #-0x40]
+    stp x28, x29, [sp, #-0x30]
+
+    // Now that x26 through x29 are backed up, we can use them to save original x30, SP, PC (ELR) and PSTATE (SPSR):
+    //   [sp, #-0x20] <== x26 i.e. x30; x27 i.e. SP
+    //   [sp, #-0x10] <== x28 i.e. ELR; x29 i.e. SPSR
+    mov x26, x30
+    mov x27, sp
+.if (EL3 == 1)
+    mrs x28, ELR_EL3
+    mrs x29, SPSR_EL3
+.else
+    mrs x28, ELR_EL1
+    mrs x29, SPSR_EL1
+.endif
+
+    stp x26, x27, [sp, #-0x20]
+    stp x28, x29, [sp, #-0x10]
+
+    // Adjust SP and push the rest of the GPRs (last-to-first)
+    sub sp, sp, #0x40
+    stp x24, x25, [sp, #-0x10]!
+    stp x22, x23, [sp, #-0x10]!
+    stp x20, x21, [sp, #-0x10]!
+    stp x18, x19, [sp, #-0x10]!
+    stp x16, x17, [sp, #-0x10]!
+    stp x14, x15, [sp, #-0x10]!
+    stp x12, x13, [sp, #-0x10]!
+    stp x10, x11, [sp, #-0x10]!
+    stp x8, x9, [sp, #-0x10]!
+    stp x6, x7, [sp, #-0x10]!
+    stp x4, x5, [sp, #-0x10]!
+    stp x2, x3, [sp, #-0x10]!
+    stp x0, x1, [sp, #-0x10]!
+.endm
+
 .macro restoreregister
 	ldp 	X29,X30, [sp], #0x10
 	ldp 	X18,X19, [sp], #0x10
@@ -86,6 +132,27 @@
 	ldp	X4,X5, [sp], #0x10
 	ldp	X2,X3, [sp], #0x10
 	ldp	X0,X1, [sp], #0x10
+.endm
+
+.macro restoreregister_full
+    ldp	x0, x1, [sp], #0x10
+    ldp	x2, x3, [sp], #0x10
+    ldp	x4, x5, [sp], #0x10
+    ldp	x6, x7, [sp], #0x10
+    ldp	x8, x9, [sp], #0x10
+    ldp	x10, x11, [sp], #0x10
+    ldp	x12, x13, [sp], #0x10
+    ldp	x14, x15, [sp], #0x10
+    ldp	x16, x17, [sp], #0x10
+    ldp	x18, x19, [sp], #0x10
+    ldp	x20, x21, [sp], #0x10
+    ldp	x22, x23, [sp], #0x10
+    ldp	x24, x25, [sp], #0x10
+    ldp	x26, x27, [sp], #0x10
+    ldp	x28, x29, [sp], #0x10
+    ldr x30, [sp]
+    // skip x30, sp, pc, pstate
+    add sp, sp, #0x20
 .endm
 
 .macro savefloatregister
@@ -198,6 +265,8 @@ _vector_table:
 .endif
 
 	b	_boot
+
+// Exceptions taken from current EL when using SP_ELx (always the case)
 .org (VBAR + 0x200)
 	b	SynchronousInterruptHandler
 
@@ -210,6 +279,7 @@ _vector_table:
 .org (VBAR + 0x380)
 	b	SErrorInterruptHandler
 
+// Exceptions taken from lower EL executing in AArch64 mode (always the case)
 .org (VBAR + 0x400)
 	b	SynchronousInterruptHandler
 
@@ -223,7 +293,7 @@ _vector_table:
 	b	SErrorInterruptHandler
 
 SynchronousInterruptHandler:
-	saveregister
+	saveregister_full
 
 /* Check if the Synchronous abort is occurred due to floating point access. */
 .if (EL3 == 1)
@@ -273,10 +343,11 @@ storefloat:
 	savefloatregister
 	b	restorecontext
 synchronoushandler:
-	mov x0, sp
+    // Pass a pointer to the saved registers as argument to the interrupt handler in C++
+    mov x0, sp
 	bl	SynchronousInterrupt
 restorecontext:
-	restoreregister
+	restoreregister_full
 	exception_return
 
 IRQInterruptHandler:

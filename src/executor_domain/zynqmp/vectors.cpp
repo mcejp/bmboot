@@ -26,22 +26,6 @@ static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
 
 // ************************************************************
 
-static void fill_crash_info(uintptr_t pc, uintptr_t sp, uint64_t* regs) {
-    auto& outbox = ipc_block.executor_to_manager;
-
-    outbox.regs.pc = pc;
-    outbox.regs.sp = sp;
-    outbox.regs.regs[29] = *regs++;
-    outbox.regs.regs[30] = *regs++;
-
-    for (int i = 18; i >= 0; i -= 2) {
-        outbox.regs.regs[i] = *regs++;
-        outbox.regs.regs[i + 1] = *regs++;
-    }
-}
-
-// ************************************************************
-
 extern "C" void FIQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
@@ -90,18 +74,13 @@ extern "C" void IRQInterrupt(void)
 // shouldn't all EL1 errors trigger a switch into EL3 and be handled there?
 //
 // also because we can end up here EITHER due to an EL3 issue or an EL1 issue that trapped to EL3
-extern "C" void SynchronousInterrupt(uint64_t* the_sp)
+extern "C" void SynchronousInterrupt(Aarch64_Regs const& saved_regs)
 {
     auto fault_address = get_ELR();
 
     saveFpuState(ipc_block.executor_to_manager.fpregs);
 
-    ipc_block.executor_to_manager.regs.pstate = get_SPSR();
-
-    // TODO: specify the layout of saved registers
-    // BUG: this does not save all GPRs!
-    fill_crash_info(fault_address, (uintptr_t)(the_sp + 32), the_sp);
-
+    ipc_block.executor_to_manager.regs = saved_regs;
     notifyPayloadCrashed("SynchronousInterrupt " EL_STRING, fault_address);
     for (;;) {}
 }
