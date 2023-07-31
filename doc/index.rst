@@ -10,8 +10,8 @@ Bmboot docs
    requirements
    build
    core-dump
+   exceptions
    external-requirements
-   ipi
    memory-map
    testing
    api-base

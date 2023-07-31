@@ -14,4 +14,10 @@ Header: :src_file:`include/bmboot/payload_runtime.hpp`
 
 .. doxygenfunction:: bmboot::notifyPayloadStarted()
 
+.. doxygenfunction:: bmboot::startPeriodicInterrupt
+
+.. doxygenfunction:: bmboot::stopPeriodicInterrupt
+
 .. doxygenfunction:: bmboot::writeToStdout(void const* data, size_t size)
+
+.. doxygentypedef:: bmboot::InterruptHandler

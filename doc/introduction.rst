@@ -123,6 +123,9 @@ Glossary
 
       For usage in bmboot, see :doc:`ipi`
 
+   IRQ
+      Interrupt request
+
    manager
       A process running under Linux, which manages :term:`executor domains <executor domain>`.
 
@@ -131,3 +134,6 @@ Glossary
 
    payload
       The user program which runs on executor CPU cores. It is started by the :term:`monitor` on user request.
+
+   SMC
+      Secure Monitor Call -- a way for the payload to invoke services provided by the monitor

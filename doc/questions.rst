@@ -53,7 +53,10 @@ Key questions and design decisions
 
 
 .. question:: Can EL1 exceptions be taken to the monitor's exception handler?
-   :status: RESOLVED
+   :id: Q_EL1EXC
+   :status: OPEN
+
+   If not, is there any circumstance besides SMC in which EL1 would trigger a synchronous exception to EL3?
 
    Answer: Not in the same way as EL0 exceptions go to EL1. It seems the only way would be for the monitor to set the
    EL1 VBAR (from EL3) and disallow EL1 from changing it.
@@ -86,13 +89,20 @@ Key questions and design decisions
 .. question:: How does PSCI affect us?
 
 
-.. qquestion:: How to have certain IRQs handled in EL3 and others in EL1?
-
-
 .. question:: How to ensure that our IRQ will be taken even if EL1 crashes to SyncErr?
    :status: RESOLVED
 
    Answer: if EL3.IRQ is set, IRQs cannot be masked by EL1
+
+
+.. question:: How to handle certain interrupts in EL3 and others in EL1?
+   :status: RESOLVED
+
+   The GIC has a concept of *interrupt groups*, which can be set for each individual interrupt source. We can then
+   route one group to IRQ and another to FIQ, while configuring the EL3 registers to catch FIQ in EL3 but let IRQ go
+   through to EL1.
+
+   QUESTION: what if we receive IRQ while already in EL3? should we keep the CPSR I-bit always off in EL3?
 
 
 .. question:: How to manage memory map so that there is a single source of truth?
