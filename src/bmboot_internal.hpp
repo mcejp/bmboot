@@ -30,6 +30,12 @@ enum
     IPI_REQ_KILL = 0x01,            // request to kill the payload & return to 'ready' state
 };
 
+enum {
+    SMC_NOTIFY_PAYLOAD_STARTED = 0xF2000000,
+    SMC_NOTIFY_PAYLOAD_CRASHED,
+    SMC_WRITE_STDOUT,
+};
+
 enum Command
 {
     noop = 0x00,

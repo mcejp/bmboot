@@ -13,6 +13,10 @@
 #define get_ELR() mfcp(ELR_EL3)
 #define get_SPSR() mfcp(SPSR_EL3)
 #define EL_STRING "EL3"
+
+enum {
+    EC_SMC = 0b010111,
+};
 #elif EL1_NONSECURE
 #define get_ELR() mfcp(ELR_EL1)
 #define get_SPSR() mfcp(SPSR_EL1)
@@ -74,8 +78,37 @@ extern "C" void IRQInterrupt(void)
 // shouldn't all EL1 errors trigger a switch into EL3 and be handled there?
 //
 // also because we can end up here EITHER due to an EL3 issue or an EL1 issue that trapped to EL3
-extern "C" void SynchronousInterrupt(Aarch64_Regs const& saved_regs)
+extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 {
+#if EL3
+    auto ec = (mfcp(ESR_EL3) >> 26) & 0b111111;
+
+    if (ec == EC_SMC)
+    {
+        switch (saved_regs.regs[0])
+        {
+            case SMC_NOTIFY_PAYLOAD_STARTED:
+                notifyPayloadStarted();
+                break;
+
+            case SMC_NOTIFY_PAYLOAD_CRASHED:
+                // TODO: this call shall not return back to EL1
+                notifyPayloadCrashed((char const*) saved_regs.regs[1], (uintptr_t) saved_regs.regs[2]);
+                break;
+
+            case SMC_WRITE_STDOUT:
+                saved_regs.regs[0] = writeToStdout((void const*) saved_regs.regs[1], (size_t) saved_regs.regs[2]);
+                break;
+
+            default:
+                notifyPayloadCrashed("SMC " EL_STRING, saved_regs.regs[0]);
+                for (;;) {}
+        }
+
+        return;
+    }
+#endif
+
     auto fault_address = get_ELR();
 
     saveFpuState(ipc_block.executor_to_manager.fpregs);

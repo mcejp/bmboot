@@ -70,3 +70,12 @@ saveFpuState:
 	stp	x2, x3, [x0], #0x10
 
     ret
+
+
+.global smc
+
+// The SMC calling convention is similar enough to the normal procedure call standard (AAPCS) for <=7 arguments
+// that we can literally just invoke the instruction and then return back to caller (assuming the SMC returns)
+smc:
+   smc #0
+   ret
