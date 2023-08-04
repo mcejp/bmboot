@@ -27,11 +27,11 @@ int main(int argc, char** argv)
         return usage();
     }
 
-    auto domain_index = parseDomainIndex(argv[2]);
+    auto domain_index = parseDomainIndex(argv[1]);
 
     if (!domain_index.has_value())
     {
-        fprintf(stderr, "console: unknown domain '%s'\n", argv[2]);
+        fprintf(stderr, "console: unknown domain '%s'\n", argv[1]);
         return -1;
     }
 

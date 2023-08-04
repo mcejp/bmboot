@@ -83,6 +83,12 @@ Key questions and design decisions
    Answer: No, EL3 should have its own protected stack.
 
 
+.. question:: How does PSCI affect us?
+
+
+.. qquestion:: How to have certain IRQs handled in EL3 and others in EL1?
+
+
 .. question:: How to ensure that our IRQ will be taken even if EL1 crashes to SyncErr?
    :status: RESOLVED
 
@@ -94,6 +100,9 @@ Key questions and design decisions
 
 .. question:: How to trace down original executable given a core dump?
    :id: Q_CORE_ID
+
+
+.. question:: How to validate that payload being loaded targets the correct CPU core, memory address, ABI version...
 
 
 .. question:: Is there value in having a separate ``starting_payload`` state?

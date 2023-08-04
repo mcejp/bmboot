@@ -32,6 +32,8 @@
  * References:
  *   https://github.com/rogercollins/bare_core/blob/master/elfcore.c
  *   https://github.com/anatol/google-coredumper/blob/master/src/elfcore.c
+ *
+ * Converted to C++ and modified for Aarch64 by Martin Cejp
  */
 
 #include "coredump_linux.hpp"
