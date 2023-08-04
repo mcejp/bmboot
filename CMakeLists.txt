@@ -15,10 +15,9 @@ if (BUILD_MONITOR OR BMBOOT_BUILD_PAYLOAD)
 
     add_link_options(
             -Wall
-            -ffreestanding
-            -specs=nosys.specs
+#            -ffreestanding                  # no reason to use this since we do have a libc
+            -specs=nosys.specs              # without this we don't get _exit, _sbrk and I/O functions
             -Wl,--gc-sections
-            -L${CMAKE_CURRENT_SOURCE_DIR}/mainBinary
     )
 endif()
 
@@ -28,6 +27,8 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
     add_library(bmboot_payload_runtime STATIC
             src/executor_domain/zynqmp/vectors.cpp
             src/executor_domain/payload_runtime.cpp
+            src/executor_domain/syscalls.cpp
+            src/executor_domain/syscalls.h
             src/executor_domain/executor_lowlevel.S        # TODO: only parts of this are useful, others will be linked in pointlessly
 
             src/executor_domain/zynqmp/asm_vectors.S
@@ -46,6 +47,14 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
 
     target_link_options(bmboot_payload_runtime PUBLIC
             -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor_domain/zynqmp/cpu1/payload.ld
+
+            # These are necessary when syscalls.cpp is in a static library: https://stackoverflow.com/q/34986536
+            -Wl,--undefined=_close
+            -Wl,--undefined=_fstat
+            -Wl,--undefined=_isatty
+            -Wl,--undefined=_lseek
+            -Wl,--undefined=_read
+            -Wl,--undefined=_write
             )
 endfunction()
 
