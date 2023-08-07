@@ -167,7 +167,7 @@ elseif (BUILD_MONITOR)
 
     include(cmake/Bmboot.cmake)
 
-    foreach(PAYLOAD access_violation hello_world)
+    foreach(PAYLOAD access_violation hello_world timer_demo)
         set(TARGET payload_${PAYLOAD}.elf)
 
         add_executable(${TARGET}
@@ -273,7 +273,12 @@ else()
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_manager)
 
-    foreach(TOOL bmctl console)
+    add_executable(timer_demo
+            src/tools/timer_demo.cpp
+            )
+    target_link_libraries(timer_demo PUBLIC bmboot_manager)
+
+    foreach(TOOL bmctl console timer_demo)
         # Make sure bmctl is linked fully statically
         # TODO: the clean solution would be to use a toolchain that matches the target OS
         target_link_options(${TOOL} PRIVATE -static -static-libgcc -static-libstdc++)
