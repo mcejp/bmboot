@@ -23,6 +23,17 @@ static void write32(size_t offset, uint32_t value) {
 }
 
 // ************************************************************
+#if EL3
+void bmboot::mach::disablePrivatePeripheralInterrupt(int ch) {
+    // TODO: should maybe just use Xilinx SDK functions
+
+    const auto gic_dist_ICENABLERn = 0xF9010180;
+    auto reg = gic_dist_ICENABLERn;
+    auto mask = (1 << ch);
+    write32(reg, mask);
+}
+#endif
+// ************************************************************
 
 #if EL3
 void bmboot::mach::enableCpuInterrupts() {
@@ -40,7 +51,7 @@ void bmboot::mach::enableCpuInterrupts() {
 #endif
 
 // ************************************************************
-
+#if EL3
 void bmboot::mach::enableIpiReception(int src_channel)
 {
     // clear any pending request
@@ -49,13 +60,39 @@ void bmboot::mach::enableIpiReception(int src_channel)
     // enable channel
     write32(0xFF300018, 1<<src_channel);
 }
-
+#endif
 // ************************************************************
 
 void bmboot::mach::flushICache() {
     Xil_ICacheInvalidate();
 }
 
+// ************************************************************
+#if EL3
+void bmboot::mach::enablePrivatePeripheralInterrupt(int ch) {
+    // TODO: should maybe just use Xilinx SDK functions
+
+    const int priority = 0x80;      // higher value = lower priority
+
+    // set to Group1 (routed to IRQ, therefore EL1)
+    const auto gic_dist_IGROUPRn = 0xF9010080;
+    auto reg = gic_dist_IGROUPRn + ch / 32 * 4;
+    auto mask = (1 << (ch % 32));
+    write32(reg, read32(reg) | mask);
+
+    // TODO: apparently this register can be byte-addressed
+    const auto gic_dist_IPRIORITYRn = 0xF9010400;
+    reg = gic_dist_IPRIORITYRn + ch / 4 * 4;
+    auto shift = (ch % 4) * 8;
+    mask = 0xff << shift;
+    write32(reg, (read32(reg) & ~mask) | (priority << shift));
+
+    const auto gic_dist_ISENABLERn = 0xF9010100;
+    reg = gic_dist_ISENABLERn;
+    mask = (1 << ch);
+    write32(reg, mask);
+}
+#endif
 // ************************************************************
 #if EL3
 void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch, int target_cpu) {

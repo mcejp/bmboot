@@ -16,8 +16,15 @@ void flushICache();
 
 void sendIpiMessage(std::span<const std::byte> message);
 
+void disablePrivatePeripheralInterrupt(int ch);
 void enableCpuInterrupts();
 void enableIpiReception(int src_channel);
+
+//! Unmask a given Private Peripheral Interrupt (PPI) for the current CPU.
+//!
+//! See ARM IHI 0048B.b for more details
+//! \param ch
+void enablePrivatePeripheralInterrupt(int ch);
 
 //! Route a given Shared Peripheral Interrupt (SPI) to the given CPU and make sure it is not masked.
 //!
@@ -25,5 +32,7 @@ void enableIpiReception(int src_channel);
 //! \param ch
 //! \param target_cpu
 void enableSharedPeripheralInterruptAndRouteToCpu(int ch, int target_cpu);
+
+void handleTimerIrq();
 
 }

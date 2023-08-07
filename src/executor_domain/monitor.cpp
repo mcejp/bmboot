@@ -8,6 +8,8 @@
 #include "executor_lowlevel.hpp"
 #include "../utility/crc32.hpp"
 
+#include "xpseudo_asm.h"
+
 using namespace bmboot;
 using namespace bmboot::internal;
 
@@ -20,6 +22,10 @@ extern "C" int main()
     auto ipc_block = (volatile IpcBlock *) MONITOR_IPC_START;
     volatile const auto& inbox = ipc_block->manager_to_executor;
     volatile auto& outbox = ipc_block->executor_to_manager;
+
+    // disable timer IRQ before enabling interrupt handling, because this might be a warm reset
+    // TODO: this should be done more systematically -- and also where? here or before the reset?
+    mach::disablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
 
     // hardcoded ZynqMP CPU1
     mach::enableCpuInterrupts();

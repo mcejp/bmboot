@@ -257,6 +257,9 @@ CrashInfo Domain::getCrashInfo()
 
 DomainState Domain::getState()
 {
+    // FIXME: domain_general_state must take precedence
+    // otherwise, for example after a failed monitor start-up, in_reset state is being reported
+
     auto state_raw = getInbox().state;
 
     if (state_raw <= (int)DomainState::invalid_state)

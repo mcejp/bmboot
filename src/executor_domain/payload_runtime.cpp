@@ -6,7 +6,7 @@
 
 #include "executor_lowlevel.hpp"
 #include "../bmboot_internal.hpp"
-#include "../mach/mach_baremetal_defs.hpp"
+#include "../mach/mach_baremetal.hpp"
 
 #include <cstring>
 
@@ -17,6 +17,44 @@ using namespace bmboot;
 using namespace bmboot::internal;
 
 static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
+
+static uint64_t timer_period_ticks;
+static InterruptHandler timer_irq_handler;
+
+#if EL1_NONSECURE
+void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
+{
+    // Perhaps this could be refactored so that only the IRQ setup is done via SMC and we configure the timer directly
+
+    // ticks = duration_us * timer_freq_Hz / 1e6
+    timer_period_ticks = (uint64_t) period_us * mfcp(CNTFRQ_EL0) / 1'000'000;
+    timer_irq_handler = handler;
+
+    smc(SMC_START_PERIODIC_INTERRUPT, timer_period_ticks);
+}
+
+void bmboot::stopPeriodicInterrupt()
+{
+    smc(SMC_STOP_PERIODIC_INTERRUPT);
+}
+#endif
+
+void bmboot::mach::handleTimerIrq()
+{
+    if (timer_irq_handler)
+    {
+        timer_irq_handler();
+    }
+    else
+    {
+        // TBD: spurious interrupt -- log a warning?
+    }
+
+    // must either set new deadline...
+    mtcp(CNTP_CVAL_EL0, mfcp(CNTP_CVAL_EL0) + timer_period_ticks);
+    // ...or disable the interrupt
+//    mtcp(CNTP_CTL_EL0, 0);
+}
 
 void bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address) {
 #if EL3

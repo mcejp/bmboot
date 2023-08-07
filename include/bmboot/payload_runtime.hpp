@@ -9,6 +9,9 @@
 namespace bmboot
 {
 
+//! Callback function for the periodic interrupt
+using InterruptHandler = void (*)();
+
 //! Escalate to the monitor after a crash has been detected.
 //! This would not normally be called by user code.
 //!
@@ -18,6 +21,15 @@ void notifyPayloadCrashed(const char* desc, uintptr_t address);
 
 //! Notify the manager that the payload has started successfully.
 void notifyPayloadStarted();
+
+//! Start a periodic interrupt.
+//!
+//! \param period_us Interrupt period in microseconds
+//! \param handler Funcion to be called
+void startPeriodicInterrupt(int period_us, InterruptHandler handler);
+
+//! Stop the periodic interrupt, if it is running.
+void stopPeriodicInterrupt();
 
 //! Write to the standard output.
 //!

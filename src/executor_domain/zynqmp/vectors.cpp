@@ -1,6 +1,6 @@
 #include "bmboot/payload_runtime.hpp"
 #include "../executor_lowlevel.hpp"
-#include "../../mach/mach_baremetal_defs.hpp"
+#include "../../mach/mach_baremetal.hpp"
 
 #include "bspconfig.h"
 #include "xipipsu.h"
@@ -64,6 +64,20 @@ extern "C" void IRQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
+#if EL1_NONSECURE
+    if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::CNTPNS_IRQ_CHANNEL) {
+        // Private timer interrupt
+
+        if ((mfcp(CNTP_CTL_EL0) & 4) != 0)  // check that the timer is really signalled -- just for good measure
+        {
+            mach::handleTimerIrq();
+        }
+
+        XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
+        return;
+    }
+#endif
+
     auto fault_address = iar; //get_ELR();
     notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
 
@@ -94,6 +108,22 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
             case SMC_NOTIFY_PAYLOAD_CRASHED:
                 // TODO: this call shall not return back to EL1
                 notifyPayloadCrashed((char const*) saved_regs.regs[1], (uintptr_t) saved_regs.regs[2]);
+                break;
+
+            case SMC_START_PERIODIC_INTERRUPT:
+                // stop timer if already running
+                mtcp(CNTP_CTL_EL0, 0);
+
+                mach::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
+
+                // configure timer & start it
+                mtcp(CNTP_TVAL_EL0, saved_regs.regs[1]);
+                mtcp(CNTP_CTL_EL0, 1);          // TODO: magic number!
+                break;
+
+            case SMC_STOP_PERIODIC_INTERRUPT:
+                // TOOD: disable IRQ etc.
+                mtcp(CNTP_CTL_EL0, 0);
                 break;
 
             case SMC_WRITE_STDOUT:
