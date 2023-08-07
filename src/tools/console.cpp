@@ -3,12 +3,9 @@
 //! @author Martin Cejp
 
 #include "bmboot/domain.hpp"
-
-#include <sstream>
-#include <thread>
+#include "bmboot/domain_helpers.hpp"
 
 using namespace bmboot;
-using namespace std::chrono_literals;
 
 // ************************************************************
 
@@ -35,16 +32,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    auto maybe_domain = IDomain::open(*domain_index);
-
-    if (!std::holds_alternative<std::unique_ptr<IDomain>>(maybe_domain))
-    {
-        fprintf(stderr, "open_domain: error: %s\n",
-                toString(std::get<ErrorCode>(maybe_domain)).c_str());
-        return -1;
-    }
-
-    auto domain = std::move(std::get<std::unique_ptr<IDomain>>(maybe_domain));
+    auto domain = throwOnError(IDomain::open(*domain_index), "IDomain::open");
 
     if (domain->getState() == DomainState::in_reset)
     {
@@ -66,27 +54,5 @@ int main(int argc, char** argv)
         domain->startDummyPayload();
     }
 
-    std::stringstream stdout_accum;
-
-    for (;;)
-    {
-        int c = domain->getchar();
-
-        if (c >= 0)
-        {
-            if (c == '\n')
-            {
-                printf("%s\n", stdout_accum.str().c_str());
-                std::stringstream().swap(stdout_accum);         // https://stackoverflow.com/a/23266418
-            }
-            else
-            {
-                stdout_accum << (char)c;
-            }
-        }
-        else
-        {
-            std::this_thread::sleep_for(1ms);
-        }
-    }
+    displayOutputContinuously(*domain);
 }

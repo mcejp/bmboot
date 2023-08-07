@@ -235,10 +235,12 @@ else()
     add_library(bmboot_manager STATIC
             include/bmboot.hpp
             include/bmboot/domain.hpp
-            src/mach/zynqmp_linux.cpp
             src/bmboot_internal.hpp
-            src/manager/domain.cpp
+            src/mach/zynqmp_linux.cpp
             src/manager/coredump_linux.cpp
+            src/utility/crc32.c
+            src/manager/domain.cpp
+            src/manager/domain_helpers.cpp
             src/utility/to_string.cpp
 
             ${MONITOR_ZYNQMP_CPU1_HPP}
@@ -255,7 +257,6 @@ else()
 
     add_executable(bmctl
             src/tools/bmctl.cpp
-            src/utility/crc32.c
             )
     target_link_libraries(bmctl PUBLIC bmboot_manager)
 
@@ -265,7 +266,6 @@ else()
     add_executable(bmtest
             src/tests/tests.cpp
             src/tools/bmtest.cpp
-            src/utility/crc32.c
             )
     target_link_libraries(bmtest PUBLIC bmboot_manager GTest::gtest pthread dl)
     target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-2.33.so -Wl,-rpath,/my-lib)

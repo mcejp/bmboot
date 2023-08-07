@@ -3,13 +3,10 @@
 //! @author Martin Cejp
 
 #include "bmboot/domain.hpp"
-#include "../utility/crc32.hpp"
+#include "bmboot/domain_helpers.hpp"
 
 #include <cstdio>
 #include <cstring>
-#include <fstream>
-#include <string>
-#include <vector>
 
 using namespace bmboot;
 
@@ -59,16 +56,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    auto maybe_domain = IDomain::open(*domain_index);
-
-    if (!std::holds_alternative<std::unique_ptr<IDomain>>(maybe_domain))
-    {
-        fprintf(stderr, "open_domain: error: %s\n",
-                toString(std::get<ErrorCode>(maybe_domain)).c_str());
-        return -1;
-    }
-
-    auto domain = std::move(std::get<std::unique_ptr<IDomain>>(maybe_domain));
+    auto domain = throwOnError(IDomain::open(*domain_index), "IDomain::open");
 
     if (strcmp(argv[1], "core") == 0)
     {
@@ -97,24 +85,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            std::ifstream file(payload_filename, std::ios::binary);
-
-            if (!file)
-            {
-                fprintf(stderr, "failed to open file\n");
-                return -1;
-            }
-
-            std::vector<uint8_t> program((std::istreambuf_iterator<char>(file)),
-                                         std::istreambuf_iterator<char>());
-
-            auto err = domain->loadAndStartPayload(program, crc32(0, program.data(), program.size()));
-
-            if (err.has_value())
-            {
-                fprintf(stderr, "IDomain::loadAndStartPayload: error: %s\n", toString(*err).c_str());
-                return -1;
-            }
+            loadPayloadFromFileOrThrow(*domain, payload_filename);
         }
     }
     else if (strcmp(argv[1], "reset") == 0)
