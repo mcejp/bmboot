@@ -38,11 +38,13 @@ Key questions and design decisions
 
 
 .. question:: ABI compatibility
-   :status: OPEN
+   :status: RESOLVED
    :links: Q_PLD_MON_ABI
 
-   Question: Since FGCD and v_loop will be deployed independently, how to ensure ABI compatibility between bmboot
-   manager and payload library?
+   Question: Since FGCD and v_loop will be deployed independently, how to ensure ABI compatibility (CPU core,
+   memory address, SMC interface) between bmboot manager and payload library?
+
+   Answer: This will be checked by FGCD by having a "v_loop ABI version" in the metadata.
 
 
 .. question:: Can EL0 have its own VBAR?
@@ -50,16 +52,6 @@ Key questions and design decisions
 
    Answer: Per ARM ARM, section *Taking synchronous exceptions from EL0*, it would seem that synchronous exceptions
    from EL0 are always taken to EL1.
-
-
-.. question:: Can EL1 exceptions be taken to the monitor's exception handler?
-   :id: Q_EL1EXC
-   :status: OPEN
-
-   If not, is there any circumstance besides SMC in which EL1 would trigger a synchronous exception to EL3?
-
-   Answer: Not in the same way as EL0 exceptions go to EL1. It seems the only way would be for the monitor to set the
-   EL1 VBAR (from EL3) and disallow EL1 from changing it.
 
 
 .. question:: Can we trap EL0 WFI & WFE instructions?
@@ -86,9 +78,6 @@ Key questions and design decisions
    Answer: No, EL3 should have its own protected stack.
 
 
-.. question:: How does PSCI affect us?
-
-
 .. question:: How to ensure that our IRQ will be taken even if EL1 crashes to SyncErr?
    :status: RESOLVED
 
@@ -106,18 +95,32 @@ Key questions and design decisions
 
 
 .. question:: How to manage memory map so that there is a single source of truth?
+   :id: Q_MEM_MAP
 
 
 .. question:: How to trace down original executable given a core dump?
    :id: Q_CORE_ID
+   :status: RESOLVED
+
+   Answer: Out of scope; appropriate metadata (hash of loaded payload) must be attached to the core dump by the
+   managing application.
 
 
-.. question:: How to validate that payload being loaded targets the correct CPU core, memory address, ABI version...
+.. question:: Is it possible to force EL1 exceptions to be taken to the monitor's exception handler?
+   :id: Q_EL1EXC
+   :status: RESOLVED
+
+   If not, is there any circumstance besides SMC in which EL1 would trigger a synchronous exception to EL3?
+
+   Answer: Not in the same way as EL0 exceptions go to EL1. It seems the only way would be for the monitor to set the
+   EL1 VBAR (from EL3) and disallow EL1 from changing it.
 
 
 .. question:: Is there value in having a separate ``starting_payload`` state?
+   :status: RESOLVED
 
-   It can help in recognizing that an invalid file was loaded as a payload.
+   Answer: Not from a functional standpoint; however, it can help in recognizing that an invalid file or an
+   ABI-incompatible payload was loaded.
 
 
 .. question:: Payload executable format
@@ -140,16 +143,26 @@ Key questions and design decisions
    :id: Q_PLD_MON_ABI
    :status: RESOLVED
 
-   It would be cleaner design, but for now we will not bother and we will access IPC memory directly.
+   Answer: Yes, it is cleaner design, and some operations (interrupt group setting) require Secure mode.
 
 
 .. question:: Virtual address of shared memory mapped into Linux process
+   :id: Q_SHMEM_VA
    :status: OPEN
 
    Question: CClibs needs to be mapped at a specific virtual address equal to its physical address. How to ensure that
    the required virtual memory range will be free in the FGCD process?
 
-   It should be possible by patching the ELF file.
+   It is not clear that a proactive solution is necessary. We can carry on and if the problem comes up (after an OS
+   upgrade), deal with it at that point. There are multiple possible solutions or work-arounds:
+
+   - By patching the ELF file and adding a Program Header similar to a .bss section
+      - This can be achieved using the LIEF library. See the script ``reserve-va-range.py``.
+   - It can be done with a LD_PRELOADed shared object: https://stackoverflow.com/a/75478566
+   - Static linking should eliminate additional objects being loaded before entering ``main``
+   - If the problem is caused by ASLR, disable it
+   - Worst-case (?), it would be possible to patch ld.so
+   - Remove the requirement by fixing CClibs
 
 
 .. question:: Will separate monitor binaries be required for different domains?
