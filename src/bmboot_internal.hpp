@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include "bmboot_memmap.hpp"
 #include "cpu_state.hpp"
 
 namespace bmboot::internal
@@ -14,12 +15,12 @@ namespace bmboot::internal
 
 // We are assuming a coherent memory system
 // TODO: multiple definitions will be needed for different domains
-constexpr inline uintptr_t  MONITOR_CODE_START =    0x7800'0000;
-constexpr inline size_t     MONITOR_CODE_SIZE =     0x0001'0000;
-constexpr inline uintptr_t  MONITOR_IPC_START =     0x7801'0000;
-constexpr inline size_t     MONITOR_IPC_SIZE =      0x0001'0000;
-constexpr inline uintptr_t  PAYLOAD_START =         0x7802'0000;
-constexpr inline uintptr_t  PAYLOAD_MAX_SIZE =      0x01FE'0000;        // code, data, stack, everything
+constexpr inline uintptr_t  MONITOR_CODE_START =    bmboot_cpu1_monitor_ADDRESS;
+constexpr inline size_t     MONITOR_CODE_SIZE =     bmboot_cpu1_monitor_SIZE;
+constexpr inline uintptr_t  MONITOR_IPC_START =     bmboot_cpu1_monitor_ipc_ADDRESS;
+constexpr inline size_t     MONITOR_IPC_SIZE =      bmboot_cpu1_monitor_ipc_SIZE;
+constexpr inline uintptr_t  PAYLOAD_START =         bmboot_cpu1_payload_ADDRESS;
+constexpr inline uintptr_t  PAYLOAD_MAX_SIZE =      bmboot_cpu1_payload_SIZE;
 
 // placed in the last 4 bytes of MONITOR_CODE area
 using Cookie = uint32_t;
@@ -89,5 +90,7 @@ struct IpcBlock
     }
     executor_to_manager;
 };
+
+static_assert(sizeof(IpcBlock) <= MONITOR_IPC_SIZE);
 
 }
