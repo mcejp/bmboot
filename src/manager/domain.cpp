@@ -260,6 +260,11 @@ DomainState Domain::getState()
     // FIXME: domain_general_state must take precedence
     // otherwise, for example after a failed monitor start-up, in_reset state is being reported
 
+    if (domain_general_state[m_domain] == DomainGeneralState::inReset)
+    {
+        return DomainState::in_reset;
+    }
+
     auto state_raw = getInbox().state;
 
     if (state_raw <= (int)DomainState::invalid_state)

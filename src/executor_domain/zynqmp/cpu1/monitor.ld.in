@@ -21,7 +21,7 @@ _STACK_SIZE = 0x00100000;
 
 MEMORY
 {
-   RAM   (rwx) : ORIGIN = 0x800000000, LENGTH = 0x00010000
+   RAM   (rwx) : ORIGIN = {{bmboot.cpu1_monitor.ADDRESS}}, LENGTH = {{bmboot.cpu1_monitor.SIZE}}
    psu_ocm_ram_0_S_AXI_BASEADDR : ORIGIN = 0xFFFC0000, LENGTH = 0x00029E00
    psu_ocm_ram_1_S_AXI_BASEADDR : ORIGIN = 0xFFFE9E00, LENGTH = 0x00000200
    psu_ocm_ram_2_S_AXI_BASEADDR : ORIGIN = 0xFFFF0040, LENGTH = 0x0000FDC0
