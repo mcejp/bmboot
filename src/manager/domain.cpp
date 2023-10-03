@@ -333,7 +333,7 @@ DomainInstanceOrErrorCode IDomain::open(DomainIndex domain)
                                       MAP_SHARED,
                                       std::get<int>(devmem),
                                       MONITOR_IPC_START);
-    if (ipc_block == nullptr)
+    if (ipc_block == MAP_FAILED)
     {
         return ErrorCode::mmap_failed;
     }
@@ -344,7 +344,7 @@ DomainInstanceOrErrorCode IDomain::open(DomainIndex domain)
                                      MAP_SHARED,
                                      std::get<int>(devmem),
                                      MONITOR_CODE_START);
-    if (code_area == nullptr)
+    if (code_area == MAP_FAILED)
     {
         return ErrorCode::mmap_failed;
     }
@@ -476,7 +476,7 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
                                      MAP_SHARED,
                                      std::get<int>(devmem),
                                      MONITOR_CODE_START);
-    if (code_area == nullptr)
+    if (code_area == MAP_FAILED)
     {
         return ErrorCode::mmap_failed;
     }
