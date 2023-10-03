@@ -44,7 +44,7 @@ SECTIONS
    *(.gnu.linkonce.t.*)
    *(.plt)
    *(.gnu_warning)
-   *(.gcc_execpt_table)
+   KEEP (*(.gcc_except_table))
    *(.glue_7)
    *(.glue_7t)
    *(.ARM.extab)
@@ -95,17 +95,13 @@ SECTIONS
 } > RAM
 
 .eh_frame : {
-  *(.eh_frame)
+  KEEP (*(.eh_frame))
 } > RAM
 
 .eh_framehdr : {
    __eh_framehdr_start = .;
    *(.eh_framehdr)
    __eh_framehdr_end = .;
-} > RAM
-
-.gcc_except_table : {
-   *(.gcc_except_table)
 } > RAM
 
 .mmu_tbl0 (ALIGN(4096)) : {
