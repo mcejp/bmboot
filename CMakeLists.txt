@@ -268,7 +268,7 @@ else()
             src/tools/bmtest.cpp
             )
     target_link_libraries(bmtest PUBLIC bmboot_manager GTest::gtest pthread dl)
-    target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-2.33.so -Wl,-rpath,/my-lib)
+    target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-linux-aarch64.so.1 -Wl,-rpath,/my-lib)
 
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_manager)
