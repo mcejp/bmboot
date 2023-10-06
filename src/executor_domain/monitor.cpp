@@ -29,7 +29,12 @@ extern "C" int main()
 
     // hardcoded ZynqMP CPU1
     mach::enableCpuInterrupts();
-    mach::enableSharedPeripheralInterruptAndRouteToCpu(mach::IPI_CURRENT_CPU_GIC_CHANNEL, mach::SELF_CPU_INDEX);
+    // IPI: set to Group0 (routed to FIQ, therefore EL3)
+    // apparently this is not the default even though ARM docs would make it seem so
+    mach::enableSharedPeripheralInterruptAndRouteToCpu(mach::IPI_CURRENT_CPU_GIC_CHANNEL,
+                                                       mach::SELF_CPU_INDEX,
+                                                       mach::InterruptGroup::group0_fiq_el3,
+                                                       mach::InterruptPriority::high);
 
     mach::enableIpiReception(0);
 

@@ -12,6 +12,8 @@
 
 // TODO: NO MAGIC NUMBERS
 
+using namespace bmboot::mach;
+
 // ************************************************************
 
 static uint32_t read32(size_t offset) {
@@ -69,23 +71,33 @@ void bmboot::mach::flushICache() {
 
 // ************************************************************
 #if EL3
-void bmboot::mach::enablePrivatePeripheralInterrupt(int ch) {
-    // TODO: should maybe just use Xilinx SDK functions
-
-    const int priority = 0x80;      // higher value = lower priority
-
-    // set to Group1 (routed to IRQ, therefore EL1)
+static void setGroupForInterruptChannel(int ch, InterruptGroup group)
+{
     const auto gic_dist_IGROUPRn = 0xF9010080;
     auto reg = gic_dist_IGROUPRn + ch / 32 * 4;
     auto mask = (1 << (ch % 32));
-    write32(reg, read32(reg) | mask);
+
+    if (group == InterruptGroup::group0_fiq_el3)
+    {
+        write32(reg, read32(reg) & ~mask);
+    }
+    else
+    {
+        write32(reg, read32(reg) | mask);
+    }
+}
+
+void bmboot::mach::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, InterruptPriority priority) {
+    // TODO: should maybe just use Xilinx SDK functions
+
+    setGroupForInterruptChannel(ch, group);
 
     // TODO: apparently this register can be byte-addressed
     const auto gic_dist_IPRIORITYRn = 0xF9010400;
-    reg = gic_dist_IPRIORITYRn + ch / 4 * 4;
+    auto reg = gic_dist_IPRIORITYRn + ch / 4 * 4;
     auto shift = (ch % 4) * 8;
-    mask = 0xff << shift;
-    write32(reg, (read32(reg) & ~mask) | (priority << shift));
+    auto mask = 0xff << shift;
+    write32(reg, (read32(reg) & ~mask) | ((int)priority << shift));
 
     const auto gic_dist_ISENABLERn = 0xF9010100;
     reg = gic_dist_ISENABLERn;
@@ -95,23 +107,17 @@ void bmboot::mach::enablePrivatePeripheralInterrupt(int ch) {
 #endif
 // ************************************************************
 #if EL3
-void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch, int target_cpu) {
+void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch, int target_cpu, InterruptGroup group, InterruptPriority priority) {
     // TODO: should maybe just use Xilinx SDK functions
 
-    // set to Group0 (routed to FIQ, therefore EL3)
-    // apparently this is not the default even though ARM docs would make it seem so
-    const auto gic_dist_IGROUPRn = 0xF9010080;
-    auto reg = gic_dist_IGROUPRn + ch / 32 * 4;
-    auto mask = (1 << (ch % 32));
-    write32(reg, read32(reg) & ~mask);
+    setGroupForInterruptChannel(ch, group);
 
     // TODO: apparently these can be byte-accessed
     const auto gic_dist_IPRIORITYRn = 0xF9010400;
-    reg = gic_dist_IPRIORITYRn + ch / 4 * 4;
+    auto reg = gic_dist_IPRIORITYRn + ch / 4 * 4;
     auto shift = (ch % 4) * 8;
-    mask = 0xff << shift;
-    auto prio = 0x20;
-    write32(reg, (read32(reg) & ~mask) | ((prio) << shift));
+    auto mask = 0xff << shift;
+    write32(reg, (read32(reg) & ~mask) | ((int)priority << shift));
 
     const auto gic_dist_ITARGETSRn = 0xF9010800;
     reg = gic_dist_ITARGETSRn + ch / 4 * 4;

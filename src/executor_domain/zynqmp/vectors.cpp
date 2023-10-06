@@ -114,7 +114,10 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
                 // stop timer if already running
                 mtcp(CNTP_CTL_EL0, 0);
 
-                mach::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
+                // set to Group1 (routed to IRQ, therefore EL1)
+                mach::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL,
+                                                       mach::InterruptGroup::group1_irq_el1,
+                                                       mach::InterruptPriority::medium);
 
                 // configure timer & start it
                 mtcp(CNTP_TVAL_EL0, saved_regs.regs[1]);
