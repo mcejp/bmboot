@@ -31,6 +31,8 @@ void startPeriodicInterrupt(int period_us, InterruptHandler handler);
 //! Stop the periodic interrupt, if it is running.
 void stopPeriodicInterrupt();
 
+void configureAndEnableInterrupt(int interruptId, InterruptHandler handler);
+
 //! Write to the standard output.
 //!
 //! @param data Data to write (normally in ASCII encoding)

@@ -1,6 +1,6 @@
 #include "bmboot/payload_runtime.hpp"
-#include "../executor_lowlevel.hpp"
-#include "../../mach/mach_baremetal.hpp"
+#include "../../executor_lowlevel.hpp"
+#include "../../../mach/mach_baremetal.hpp"
 
 #include "bspconfig.h"
 #include "xipipsu.h"
@@ -9,24 +9,23 @@
 
 // ************************************************************
 
-#if EL3
+#if not(EL3)
+#error This file is only relevant when building the monitor
+#endif
+
 #define get_ELR() mfcp(ELR_EL3)
-#define get_SPSR() mfcp(SPSR_EL3)
 #define EL_STRING "EL3"
 
 enum {
     EC_SMC = 0b010111,
 };
-#elif EL1_NONSECURE
-#define get_ELR() mfcp(ELR_EL1)
-#define get_SPSR() mfcp(SPSR_EL1)
-#define EL_STRING "EL1"
-#endif
 
 using namespace bmboot;
 using namespace bmboot::internal;
 
 static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
+
+// FIXME: we call notifyPayloadCrashed even if it is the *monitor* crashing
 
 // ************************************************************
 
@@ -34,7 +33,6 @@ extern "C" void FIQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
-#if EL3
     if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::IPI_CH0_GIC_CHANNEL) {
         // acknowledge IPI
         auto source_mask = XIpiPsu_ReadReg(XPAR_PSU_IPI_0_S_AXI_BASEADDR, XIPIPSU_ISR_OFFSET);
@@ -44,11 +42,12 @@ extern "C" void FIQInterrupt(void)
 
         // IRQ triggered by APU?
         if (source_mask & (1 << mach::IPI_SRC_APU)) {
+            mach::teardownEl1Interrupts();
+
             // reset monitor -- jump to entry
             _boot();
         }
     }
-#endif
 
     auto fault_address = iar; //get_ELR();
     notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
@@ -63,20 +62,6 @@ extern "C" void FIQInterrupt(void)
 extern "C" void IRQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
-
-#if EL1_NONSECURE
-    if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::CNTPNS_IRQ_CHANNEL) {
-        // Private timer interrupt
-
-        if ((mfcp(CNTP_CTL_EL0) & 4) != 0)  // check that the timer is really signalled -- just for good measure
-        {
-            mach::handleTimerIrq();
-        }
-
-        XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
-        return;
-    }
-#endif
 
     auto fault_address = iar; //get_ELR();
     notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
@@ -94,7 +79,6 @@ extern "C" void IRQInterrupt(void)
 // also because we can end up here EITHER due to an EL3 issue or an EL1 issue that trapped to EL3
 extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 {
-#if EL3
     auto ec = (mfcp(ESR_EL3) >> 26) & 0b111111;
 
     if (ec == EC_SMC)
@@ -133,6 +117,14 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
                 saved_regs.regs[0] = writeToStdout((void const*) saved_regs.regs[1], (size_t) saved_regs.regs[2]);
                 break;
 
+            case SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE:
+                mach::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
+                                                                   mach::InterruptTrigger::edge,
+                                                                   mach::SELF_CPU_INDEX,
+                                                                   mach::InterruptGroup::group1_irq_el1,
+                                                                   mach::InterruptPriority::medium);
+                break;
+
             default:
                 notifyPayloadCrashed("SMC " EL_STRING, saved_regs.regs[0]);
                 for (;;) {}
@@ -140,7 +132,6 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 
         return;
     }
-#endif
 
     auto fault_address = get_ELR();
 

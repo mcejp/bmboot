@@ -26,7 +26,19 @@ enum class InterruptPriority
     medium = 0x80,
 };
 
+enum class InterruptTrigger
+{
+    unchanged,
+    level,
+    edge,
+};
+
 void flushICache();
+
+//! Disable all interrupts that have been routed to EL1
+//! This is necessary when the monitor restarts, since the IRQ/FIQ routing options will be reset and the interrupts
+//! would be delivered to EL3 (and we crash pretty hard on any spurious interrupt. that's by design.)
+void teardownEl1Interrupts();
 
 void sendIpiMessage(std::span<const std::byte> message);
 
@@ -49,7 +61,8 @@ void enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, InterruptPri
 //! \param target_cpu
 //! \param group
 //! \param priority
-void enableSharedPeripheralInterruptAndRouteToCpu(int ch, int target_cpu, InterruptGroup group, InterruptPriority priority);
+void enableSharedPeripheralInterruptAndRouteToCpu(int ch, InterruptTrigger trigger,
+                                                  int target_cpu, InterruptGroup group, InterruptPriority priority);
 
 void handleTimerIrq();
 

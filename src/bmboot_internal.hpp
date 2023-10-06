@@ -10,6 +10,7 @@
 #include "bmboot_memmap.hpp"
 #include "cpu_state.hpp"
 
+// The jury is still out on whether this interface was a good idea.
 namespace bmboot::internal
 {
 
@@ -26,6 +27,9 @@ constexpr inline uintptr_t  PAYLOAD_MAX_SIZE =      bmboot_cpu1_payload_SIZE;
 using Cookie = uint32_t;
 constexpr inline Cookie MONITOR_CODE_COOKIE = 0x7150ABCD;
 
+constexpr inline int GIC_MIN_USER_INTERRUPT_ID = 121;
+constexpr inline int GIC_MAX_USER_INTERRUPT_ID = 128;     // inclusive
+
 enum
 {
     IPI_REQ_KILL = 0x01,            // request to kill the payload & return to 'ready' state
@@ -37,6 +41,8 @@ enum {
     SMC_START_PERIODIC_INTERRUPT,
     SMC_STOP_PERIODIC_INTERRUPT,
     SMC_WRITE_STDOUT,
+
+    SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE,
 };
 
 enum Command

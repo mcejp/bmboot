@@ -25,7 +25,7 @@ project(bmboot C CXX ASM)
 
 function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
     add_library(bmboot_payload_runtime STATIC
-            src/executor_domain/zynqmp/vectors.cpp
+            src/executor_domain/zynqmp/el1/vectors_el1.cpp
             src/executor_domain/payload_runtime.cpp
             src/executor_domain/syscalls.cpp
             src/executor_domain/syscalls.h
@@ -115,8 +115,7 @@ elseif (BUILD_MONITOR)
             src/executor_domain/payload_runtime.cpp
             src/utility/crc32.c
 
-            # slightly wrong as this will indicate crashedPayload even if the fault is in the monitor
-            src/executor_domain/zynqmp/vectors.cpp
+            src/executor_domain/zynqmp/el3/vectors_el3.cpp
             src/executor_domain/zynqmp/asm_vectors.S
             )
 
@@ -167,7 +166,7 @@ elseif (BUILD_MONITOR)
 
     include(cmake/Bmboot.cmake)
 
-    foreach(PAYLOAD access_violation hello_world timer_demo exception_caught_demo)
+    foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo)
         set(TARGET payload_${PAYLOAD}.elf)
 
         add_executable(${TARGET}

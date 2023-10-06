@@ -5,7 +5,7 @@
 #include <bmboot/payload_runtime.hpp>
 
 #include "executor_lowlevel.hpp"
-#include "../bmboot_internal.hpp"
+#include "zynqmp/el1/payload_runtime_internal.hpp"
 #include "../mach/mach_baremetal.hpp"
 
 #include <cstring>
@@ -21,7 +21,22 @@ static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
 static uint64_t timer_period_ticks;
 static InterruptHandler timer_irq_handler;
 
+InterruptHandler internal::user_interrupt_handlers[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
+
 #if EL1_NONSECURE
+void bmboot::configureAndEnableInterrupt(int interruptId, InterruptHandler handler)
+{
+    if (interruptId < GIC_MIN_USER_INTERRUPT_ID || interruptId > GIC_MAX_USER_INTERRUPT_ID)
+    {
+        // TODO: signal error
+        return;
+    }
+
+    user_interrupt_handlers[interruptId - GIC_MIN_USER_INTERRUPT_ID] = handler;
+
+    smc(SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE, interruptId);
+}
+
 void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
 {
     // Perhaps this could be refactored so that only the IRQ setup is done via SMC and we configure the timer directly

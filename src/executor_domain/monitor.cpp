@@ -23,15 +23,12 @@ extern "C" int main()
     volatile const auto& inbox = ipc_block->manager_to_executor;
     volatile auto& outbox = ipc_block->executor_to_manager;
 
-    // disable timer IRQ before enabling interrupt handling, because this might be a warm reset
-    // TODO: this should be done more systematically -- and also where? here or before the reset?
-    mach::disablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
-
-    // hardcoded ZynqMP CPU1
+    // FIXME: there is no need to enable IRQs as we always route those to EL1.
     mach::enableCpuInterrupts();
     // IPI: set to Group0 (routed to FIQ, therefore EL3)
     // apparently this is not the default even though ARM docs would make it seem so
     mach::enableSharedPeripheralInterruptAndRouteToCpu(mach::IPI_CURRENT_CPU_GIC_CHANNEL,
+                                                       mach::InterruptTrigger::unchanged,
                                                        mach::SELF_CPU_INDEX,
                                                        mach::InterruptGroup::group0_fiq_el3,
                                                        mach::InterruptPriority::high);
