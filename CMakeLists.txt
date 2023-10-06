@@ -167,7 +167,7 @@ elseif (BUILD_MONITOR)
 
     include(cmake/Bmboot.cmake)
 
-    foreach(PAYLOAD access_violation hello_world timer_demo)
+    foreach(PAYLOAD access_violation hello_world timer_demo exception_caught_demo)
         set(TARGET payload_${PAYLOAD}.elf)
 
         add_executable(${TARGET}
