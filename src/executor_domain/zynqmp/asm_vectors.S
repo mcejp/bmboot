@@ -289,7 +289,7 @@ _vector_table:
 .org (VBAR + 0x500)
 	b	FIQInterruptHandler
 
-.org (VBAR + 0x680)
+.org (VBAR + 0x580)
 	b	SErrorInterruptHandler
 
 SynchronousInterruptHandler:

@@ -14,7 +14,6 @@ enterEL1Payload:
 		// Determine the EL2 Execution state.
         // IRQ & FIQ must be routed to EL3 even when executing EL1 code (payload)
 		mov x1, xzr
-		orr x1, x1, #(1<<22) // EIS Exception Entry is Context Synchronizing.
 		ORR X1, X1, #(1<<10) // RW EL2 Execution state is AArch64.
 		orr x1, x1, #(1<<3) // EA Take External Abort and SError to EL3
 		orr x1, x1, #(1<<2) // FIQ Take FIQs to EL3
@@ -31,7 +30,12 @@ enterEL1Payload:
 
 el2_entry:
 		// Initialize the SCTLR_EL1 register before entering EL1.
-		MSR SCTLR_EL1, XZR
+		// Reset values as per https://developer.arm.com/documentation/ddi0500/j/System-Control/AArch64-register-descriptions/System-Control-Register--EL1:
+		// 0b0011 0000 1101 0101 0000 1000 0011 1000, or 0x30C50838
+		// Note that we just need to provide some sane defaults, since the EL1 startup code from BSP will reconfigure
+		// the register again
+		ldr x1, =0x30C50838
+		msr SCTLR_EL1, x1
 
 		// Determine the EL1 Execution state.
 		mov x1, #0
