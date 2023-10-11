@@ -43,13 +43,19 @@ void bmboot::mach::disablePrivatePeripheralInterrupt(int ch) {
 
 #if EL3
 void bmboot::mach::enableCpuInterrupts() {
-    // per function CPUInitialize in BSP
-    write32(0xF9020004, 0xFF);                          // Priority Mask Register: maximum value
-    write32(0xF9020000, XSCUGIC_CNTR_FIQEN_MASK |
-                        XSCUGIC_CNTR_ACKCTL_MASK |
-                        XSCUGIC_CNTR_EN_NS_MASK |
-                        XSCUGIC_CNTR_EN_S_MASK);
-    // note that the meaning of the bits in this register changes based on S/NS access
+    // Upper 4 bits of priority value determine priority for preemption purposes
+    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_BIN_PT_OFFSET, 0x03);
+    // Priority Mask Register: maximum value
+    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_CPU_PRIOR_OFFSET, 0xFF);
+
+    // Note that the meaning of the bits in this register changes based on S/NS access
+    // We execute this in EL3 aka Secure
+    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR,
+                     XSCUGIC_CONTROL_OFFSET,
+                     (XSCUGIC_CNTR_FIQEN_MASK |
+                      XSCUGIC_CNTR_ACKCTL_MASK |
+                      XSCUGIC_CNTR_EN_NS_MASK |
+                      XSCUGIC_CNTR_EN_S_MASK));
 
     // very misleading -- these are in fact *mask* bits, not *enable* bits
     mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE & ~XREG_CPSR_FIQ_ENABLE);

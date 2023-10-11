@@ -58,7 +58,16 @@ extern "C" void IRQInterrupt(void)
              int_id <= GIC_MAX_USER_INTERRUPT_ID &&
              user_interrupt_handlers[int_id - GIC_MIN_USER_INTERRUPT_ID])
     {
+        // Back up SPSR and ELR before re-enabling interrupts
+        uint64_t spsr = mfcp(SPSR_EL1);
+        uint64_t elr = mfcp(ELR_EL1);
+        mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE);           // clear IRQ *mask* bit (mis-named constant)
+
         user_interrupt_handlers[int_id - GIC_MIN_USER_INTERRUPT_ID]();
+
+        mtcpsr(mfcpsr() | XREG_CPSR_IRQ_ENABLE);           // set IRQ *mask* bit (mis-named constant)
+        mtcp(SPSR_EL1, spsr);
+        mtcp(ELR_EL1, elr);
 
         XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
         return;
