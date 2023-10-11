@@ -31,7 +31,7 @@ extern "C" int main()
                                                        mach::InterruptTrigger::unchanged,
                                                        mach::SELF_CPU_INDEX,
                                                        mach::InterruptGroup::group0_fiq_el3,
-                                                       mach::InterruptPriority::high);
+                                                       mach::MonitorInterruptPriority::m7_max);
 
     mach::enableIpiReception(0);
 

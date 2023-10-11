@@ -24,7 +24,7 @@ static InterruptHandler timer_irq_handler;
 InterruptHandler internal::user_interrupt_handlers[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
 
 #if EL1_NONSECURE
-void bmboot::configureAndEnableInterrupt(int interruptId, InterruptHandler handler)
+void bmboot::configureAndEnableInterrupt(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler)
 {
     if (interruptId < GIC_MIN_USER_INTERRUPT_ID || interruptId > GIC_MAX_USER_INTERRUPT_ID)
     {
@@ -34,7 +34,7 @@ void bmboot::configureAndEnableInterrupt(int interruptId, InterruptHandler handl
 
     user_interrupt_handlers[interruptId - GIC_MIN_USER_INTERRUPT_ID] = handler;
 
-    smc(SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE, interruptId);
+    smc(SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE, interruptId, (int) priority);
 }
 
 void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)

@@ -101,7 +101,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
                 // set to Group1 (routed to IRQ, therefore EL1)
                 mach::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL,
                                                        mach::InterruptGroup::group1_irq_el1,
-                                                       mach::InterruptPriority::medium);
+                                                       mach::MonitorInterruptPriority::payloadMaxPriorityValue);
 
                 // configure timer & start it
                 mtcp(CNTP_TVAL_EL0, saved_regs.regs[1]);
@@ -117,13 +117,21 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
                 saved_regs.regs[0] = writeToStdout((void const*) saved_regs.regs[1], (size_t) saved_regs.regs[2]);
                 break;
 
-            case SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE:
+            case SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE: {
+                int requestedPriority = saved_regs.regs[2];
+
+                if (requestedPriority < (int) mach::MonitorInterruptPriority::payloadMinPriorityValue ||
+                    requestedPriority > (int) mach::MonitorInterruptPriority::payloadMaxPriorityValue) {
+                    break;
+                }
+
                 mach::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
                                                                    mach::InterruptTrigger::edge,
                                                                    mach::SELF_CPU_INDEX,
                                                                    mach::InterruptGroup::group1_irq_el1,
-                                                                   mach::InterruptPriority::medium);
+                                                                   (mach::MonitorInterruptPriority) requestedPriority);
                 break;
+            }
 
             default:
                 notifyPayloadCrashed("SMC " EL_STRING, saved_regs.regs[0]);

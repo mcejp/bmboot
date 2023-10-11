@@ -12,8 +12,8 @@ int main(int argc, char** argv)
 
     printf("Adrian IRQ demo\n");
 
-    bmboot::configureAndEnableInterrupt(INTERRUPT_ID_ADRIAN_100US, on100us);
-    bmboot::configureAndEnableInterrupt(INTERRUPT_ID_ADRIAN_1000US, on1000us);
+    bmboot::configureAndEnableInterrupt(INTERRUPT_ID_ADRIAN_100US, bmboot::PayloadInterruptPriority::p1, on100us);
+    bmboot::configureAndEnableInterrupt(INTERRUPT_ID_ADRIAN_1000US, bmboot::PayloadInterruptPriority::p0_min, on1000us);
 
     for (;;) {}
 }

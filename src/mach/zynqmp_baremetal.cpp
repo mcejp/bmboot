@@ -44,7 +44,7 @@ void bmboot::mach::disablePrivatePeripheralInterrupt(int ch) {
 #if EL3
 void bmboot::mach::enableCpuInterrupts() {
     // per function CPUInitialize in BSP
-    write32(0xF9020004, 0xF0);
+    write32(0xF9020004, 0xFF);                          // Priority Mask Register: maximum value
     write32(0xF9020000, XSCUGIC_CNTR_FIQEN_MASK |
                         XSCUGIC_CNTR_ACKCTL_MASK |
                         XSCUGIC_CNTR_EN_NS_MASK |
@@ -97,7 +97,7 @@ static void setGroupForInterruptChannel(int int_id, InterruptGroup group)
     }
 }
 
-void bmboot::mach::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, InterruptPriority priority) {
+void bmboot::mach::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority) {
     // TODO: should maybe just use Xilinx SDK functions
 
     setGroupForInterruptChannel(ch, group);
@@ -119,7 +119,11 @@ void bmboot::mach::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group
 #endif
 // ************************************************************
 #if EL3
-void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch, InterruptTrigger trigger, int target_cpu, InterruptGroup group, InterruptPriority priority) {
+void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch,
+                                                                InterruptTrigger trigger,
+                                                                int target_cpu,
+                                                                InterruptGroup group,
+                                                                MonitorInterruptPriority priority) {
     // TODO: should maybe just use Xilinx SDK functions
 
     setGroupForInterruptChannel(ch, group);
@@ -152,7 +156,19 @@ void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch, Interrup
         write32(reg, (read32(reg) & ~mask) | (0b10 << shift));
     }
 
-    // TODO: should clear interrupt pending flag, just for a good measure?
+    // Clear pending and active statuses.
+    // We don't know what happened in the past, a previous payload might have been terminated during the handling this
+    // interrupt, in which case the interrupt would remain in an Active state in the GIC.
+
+    const auto gic_dist_ICPENDRn = 0xF9010280;
+    reg = gic_dist_ICPENDRn + ch / 32 * 4;
+    mask = (1 << (ch % 32));
+    write32(reg, mask);
+
+    const auto gic_dist_ICACTIVERn = 0xF9010380;
+    reg = gic_dist_ICACTIVERn + ch / 32 * 4;
+    mask = (1 << (ch % 32));
+    write32(reg, mask);
 
     // This does not seem necessary, the bit reads as 1 anyway -- at least for the IPI (SPI #67)... curious
     const auto gic_dist_ISENABLERn = 0xF9010100;

@@ -20,10 +20,18 @@ enum class InterruptGroup
 
 // higher value = lower priority
 // the resolution is implementation-defined, on the Zynq the upper 4 bits of the byte should be taken into consideration
-enum class InterruptPriority
+enum class MonitorInterruptPriority
 {
-    high = 0x20,
-    medium = 0x80,
+    m7_max = 0x00,
+    m6 = 0x10,
+    m5 = 0x20,
+    m4 = 0x30,
+    m3 = 0x40,
+    m2 = 0x50,
+    m1 = 0x60,
+    m0_min = 0x70,
+    payloadMinPriorityValue = 0x80,
+    payloadMaxPriorityValue = 0xF0,
 };
 
 enum class InterruptTrigger
@@ -52,7 +60,7 @@ void enableIpiReception(int src_channel);
 //! \param ch
 //! \param group
 //! \param priority
-void enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, InterruptPriority priority);
+void enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority);
 
 //! Route a given Shared Peripheral Interrupt (SPI) to the given CPU and make sure it is not masked.
 //!
@@ -61,8 +69,11 @@ void enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, InterruptPri
 //! \param target_cpu
 //! \param group
 //! \param priority
-void enableSharedPeripheralInterruptAndRouteToCpu(int ch, InterruptTrigger trigger,
-                                                  int target_cpu, InterruptGroup group, InterruptPriority priority);
+void enableSharedPeripheralInterruptAndRouteToCpu(int ch,
+                                                  InterruptTrigger trigger,
+                                                  int target_cpu,
+                                                  InterruptGroup group,
+                                                  MonitorInterruptPriority priority);
 
 void handleTimerIrq();
 

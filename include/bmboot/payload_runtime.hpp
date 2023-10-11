@@ -9,6 +9,20 @@
 namespace bmboot
 {
 
+// higher value = lower priority
+// the resolution is implementation-defined, on the Zynq the upper 4 bits of the byte should be taken into consideration
+enum class PayloadInterruptPriority
+{
+    p7_max = 0x80,
+    p6 = 0x90,
+    p5 = 0xA0,
+    p4 = 0xB0,
+    p3 = 0xC0,
+    p2 = 0xD0,
+    p1 = 0xE0,
+    p0_min = 0xF0,
+};
+
 //! Callback function for the periodic interrupt
 using InterruptHandler = void (*)();
 
@@ -31,7 +45,7 @@ void startPeriodicInterrupt(int period_us, InterruptHandler handler);
 //! Stop the periodic interrupt, if it is running.
 void stopPeriodicInterrupt();
 
-void configureAndEnableInterrupt(int interruptId, InterruptHandler handler);
+void configureAndEnableInterrupt(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler);
 
 //! Write to the standard output.
 //!
