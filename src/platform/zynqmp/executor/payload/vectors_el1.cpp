@@ -1,7 +1,7 @@
 #include "bmboot/payload_runtime.hpp"
+#include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
-#include "../../executor_lowlevel.hpp"
-#include "../../../mach/mach_baremetal.hpp"
+#include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
 #include "xipipsu.h"
@@ -48,7 +48,7 @@ extern "C" void IRQInterrupt(void)
 
         if ((mfcp(CNTP_CTL_EL0) & 4) != 0)  // check that the timer is really signalled -- just for good measure
         {
-            mach::handleTimerIrq();
+            handleTimerIrq();
         }
 
         XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
@@ -59,6 +59,9 @@ extern "C" void IRQInterrupt(void)
              user_interrupt_handlers[int_id - GIC_MIN_USER_INTERRUPT_ID])
     {
         // Back up SPSR and ELR before re-enabling interrupts
+        //
+        // Equivalent macro in Xilinx SDK (but looks quite sketchy with the stack usage):
+        // https://github.com/Xilinx/embeddedsw/blob/8fca1ac929453ba06613b5417141483b4c2d8cf3/lib/bsp/standalone/src/arm/common/xil_exception.h#L371
         uint64_t spsr = mfcp(SPSR_EL1);
         uint64_t elr = mfcp(ELR_EL1);
         mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE);           // clear IRQ *mask* bit (mis-named constant)

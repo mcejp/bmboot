@@ -1,12 +1,8 @@
 //! @file
-//! @brief  Machine-specific definitions
+//! @brief  Platform-specific definitions
 //! @author Martin Cejp
 
-// TODO: this file still has a purpose for being separate?
-
 #pragma once
-
-#define memory_write_reorder_barrier() __asm volatile ("dmb ishst" : : : "memory")
 
 namespace bmboot::mach {
 

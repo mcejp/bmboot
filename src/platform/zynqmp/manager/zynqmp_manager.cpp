@@ -2,8 +2,8 @@
 //! @brief  Machine-specific functions, Linux
 //! @author Martin Cejp
 
-#include "mach_linux.hpp"
-#include "../utility/mmap.hpp"
+#include "utility/mmap.hpp"
+#include "zynqmp_manager.hpp"
 
 #include <cstring>
 
@@ -46,7 +46,7 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
     //
     // And thus, Bmboot was born.
     auto init_val = base_0xFD1A0000.read32(0x0104);
-    base_0xFD1A0000.write32(0x0104, init_val | (1 << 1));       // assert reset on CPU1
+    base_0xFD1A0000.write32(0x0104, init_val | (1 << 1));       // assert reset on CPU1 -- TODO: instead should check that it is already there
     base_0xFD5C0000.write32(0x0048, reset_address);             // set initial address: RVBARADDR1L
     base_0xFD5C0000.write32(0x004C, reset_address >> 32);       //                      RVBARADDR1H
     base_0xFD1A0000.write32(0x0104, init_val & ~(1 << 1));      // de-assert reset on CPU1

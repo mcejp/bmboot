@@ -1,19 +1,18 @@
-#include "bmboot/payload_runtime.hpp"
-#include "../../executor_lowlevel.hpp"
-#include "../../../mach/mach_baremetal.hpp"
+#include "platform_interrupt_controller.hpp"
+#include "executor_asm.hpp"
+#include "monitor_asm.hpp"
+#include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
 #include "xipipsu.h"
 #include "xscugic.h"
 #include "xpseudo_asm.h"
 
+// This is a hack to get access to notifyPayloadCrashed
+#include "bmboot/payload_runtime.hpp"
+
 // ************************************************************
 
-#if not(EL3)
-#error This file is only relevant when building the monitor
-#endif
-
-#define get_ELR() mfcp(ELR_EL3)
 #define EL_STRING "EL3"
 
 enum {
@@ -42,7 +41,7 @@ extern "C" void FIQInterrupt(void)
 
         // IRQ triggered by APU?
         if (source_mask & (1 << mach::IPI_SRC_APU)) {
-            mach::teardownEl1Interrupts();
+            platform::teardownEl1Interrupts();
 
             // reset monitor -- jump to entry
             _boot();
@@ -99,9 +98,9 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
                 mtcp(CNTP_CTL_EL0, 0);
 
                 // set to Group1 (routed to IRQ, therefore EL1)
-                mach::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL,
-                                                       mach::InterruptGroup::group1_irq_el1,
-                                                       mach::MonitorInterruptPriority::payloadMaxPriorityValue);
+                platform::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL,
+                                                           platform::InterruptGroup::group1_irq_el1,
+                                                           platform::MonitorInterruptPriority::payloadMaxPriorityValue);
 
                 // configure timer & start it
                 mtcp(CNTP_TVAL_EL0, saved_regs.regs[1]);
@@ -120,16 +119,16 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
             case SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE: {
                 int requestedPriority = saved_regs.regs[2];
 
-                if (requestedPriority < (int) mach::MonitorInterruptPriority::payloadMinPriorityValue ||
-                    requestedPriority > (int) mach::MonitorInterruptPriority::payloadMaxPriorityValue) {
+                if (requestedPriority < (int) platform::MonitorInterruptPriority::payloadMinPriorityValue ||
+                    requestedPriority > (int) platform::MonitorInterruptPriority::payloadMaxPriorityValue) {
                     break;
                 }
 
-                mach::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
-                                                                   mach::InterruptTrigger::edge,
-                                                                   mach::SELF_CPU_INDEX,
-                                                                   mach::InterruptGroup::group1_irq_el1,
-                                                                   (mach::MonitorInterruptPriority) requestedPriority);
+                platform::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
+                                                                       platform::InterruptTrigger::edge,
+                                                                        mach::SELF_CPU_INDEX,
+                                                                       platform::InterruptGroup::group1_irq_el1,
+                                                                        (platform::MonitorInterruptPriority) requestedPriority);
                 break;
             }
 

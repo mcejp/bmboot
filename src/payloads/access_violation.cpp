@@ -1,6 +1,6 @@
 #include <bmboot/payload_runtime.hpp>
 
-#include "sleep.h"
+#include <unistd.h>
 
 [[gnu::noinline]] [[noreturn]]
 static void access_invalid_memory()

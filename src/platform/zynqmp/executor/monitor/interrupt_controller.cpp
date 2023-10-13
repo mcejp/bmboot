@@ -2,8 +2,9 @@
 //! @brief  Machine-specific functions, bare metal
 //! @author Martin Cejp
 
-#include "mach_baremetal.hpp"
-#include "../bmboot_internal.hpp"
+#include "bmboot_internal.hpp"
+#include "platform_interrupt_controller.hpp"
+#include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
 #include "xil_cache.h"
@@ -14,7 +15,7 @@
 // TODO: NO MAGIC NUMBERS
 
 using namespace bmboot::internal;
-using namespace bmboot::mach;
+using namespace bmboot::platform;
 
 static bool interrupt_routed_to_el1[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
 
@@ -29,8 +30,8 @@ static void write32(size_t offset, uint32_t value) {
 }
 
 // ************************************************************
-#if EL3
-void bmboot::mach::disablePrivatePeripheralInterrupt(int ch) {
+
+void bmboot::platform::disablePrivatePeripheralInterrupt(int ch) {
     // TODO: should maybe just use Xilinx SDK functions
 
     const auto gic_dist_ICENABLERn = 0xF9010180;
@@ -38,11 +39,10 @@ void bmboot::mach::disablePrivatePeripheralInterrupt(int ch) {
     auto mask = (1 << ch);
     write32(reg, mask);
 }
-#endif
+
 // ************************************************************
 
-#if EL3
-void bmboot::mach::enableCpuInterrupts() {
+static void enableCpuInterrupts() {
     // Upper 4 bits of priority value determine priority for preemption purposes
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_BIN_PT_OFFSET, 0x03);
     // Priority Mask Register: maximum value
@@ -60,11 +60,10 @@ void bmboot::mach::enableCpuInterrupts() {
     // very misleading -- these are in fact *mask* bits, not *enable* bits
     mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE & ~XREG_CPSR_FIQ_ENABLE);
 }
-#endif
 
 // ************************************************************
-#if EL3
-void bmboot::mach::enableIpiReception(int src_channel)
+
+void bmboot::platform::enableIpiReception(int src_channel)
 {
     // clear any pending request
     write32(0xFF300010, 1<<src_channel);
@@ -72,15 +71,15 @@ void bmboot::mach::enableIpiReception(int src_channel)
     // enable channel
     write32(0xFF300018, 1<<src_channel);
 }
-#endif
+
 // ************************************************************
 
-void bmboot::mach::flushICache() {
+void bmboot::platform::flushICache() {
     Xil_ICacheInvalidate();
 }
 
 // ************************************************************
-#if EL3
+
 static void setGroupForInterruptChannel(int int_id, InterruptGroup group)
 {
     const auto gic_dist_IGROUPRn = 0xF9010080;
@@ -103,7 +102,7 @@ static void setGroupForInterruptChannel(int int_id, InterruptGroup group)
     }
 }
 
-void bmboot::mach::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority) {
+void bmboot::platform::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority) {
     // TODO: should maybe just use Xilinx SDK functions
 
     setGroupForInterruptChannel(ch, group);
@@ -122,10 +121,10 @@ void bmboot::mach::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group
     mask = (1 << ch);
     write32(reg, mask);
 }
-#endif
+
 // ************************************************************
-#if EL3
-void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch,
+
+void bmboot::platform::enableSharedPeripheralInterruptAndRouteToCpu(int ch,
                                                                 InterruptTrigger trigger,
                                                                 int target_cpu,
                                                                 InterruptGroup group,
@@ -182,12 +181,12 @@ void bmboot::mach::enableSharedPeripheralInterruptAndRouteToCpu(int ch,
     mask = (1 << (ch % 32));
     write32(reg, mask);
 }
-#endif
+
 // ************************************************************
-#if EL3
-void bmboot::mach::teardownEl1Interrupts()
+
+void bmboot::platform::teardownEl1Interrupts()
 {
-    mach::disablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
+    platform::disablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
 
     for (int int_id = GIC_MIN_USER_INTERRUPT_ID; int_id <= GIC_MAX_USER_INTERRUPT_ID; int_id++)
     {
@@ -202,4 +201,20 @@ void bmboot::mach::teardownEl1Interrupts()
         }
     }
 }
-#endif
+
+// ************************************************************
+
+void bmboot::platform::setupInterrupts()
+{
+    // FIXME: there is no need to enable IRQs as we always route those to EL1.
+    enableCpuInterrupts();
+    // IPI: set to Group0 (routed to FIQ, therefore EL3)
+    // apparently this is not the default even though ARM docs would make it seem so
+    platform::enableSharedPeripheralInterruptAndRouteToCpu(mach::IPI_CURRENT_CPU_GIC_CHANNEL,
+                                                           platform::InterruptTrigger::unchanged,
+                                                           mach::SELF_CPU_INDEX,
+                                                           platform::InterruptGroup::group0_fiq_el3,
+                                                           platform::MonitorInterruptPriority::m7_max);
+
+    platform::enableIpiReception(0);
+}

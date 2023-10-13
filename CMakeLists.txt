@@ -25,20 +25,29 @@ project(bmboot C CXX ASM)
 
 function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
     add_library(bmboot_payload_runtime STATIC
-            src/executor_domain/zynqmp/el1/vectors_el1.cpp
-            src/executor_domain/payload_runtime.cpp
-            src/executor_domain/syscalls.cpp
-            src/executor_domain/syscalls.h
-            src/executor_domain/executor_lowlevel.S        # TODO: only parts of this are useful, others will be linked in pointlessly
-
-            src/executor_domain/zynqmp/asm_vectors.S
+            src/executor/executor_asm.S
+            src/executor/payload/payload_runtime.cpp
+            src/executor/payload/syscalls.cpp
+            src/executor/payload/syscalls.h
+            src/platform/zynqmp/executor/asm_vectors.S
+            src/platform/zynqmp/executor/payload/vectors_el1.cpp
             )
 
     target_compile_features(bmboot_payload_runtime PUBLIC cxx_std_20)
 
     target_include_directories(bmboot_payload_runtime PUBLIC
             include
-            ${BMBOOT_BSP_EL1_INCLUDE_DIR}
+            )
+
+    target_include_directories(bmboot_payload_runtime PRIVATE
+            src
+            src/executor
+            src/executor/payload
+            src/platform/zynqmp/executor
+            src/platform/zynqmp/executor/payload
+
+            ${BMBOOT_BSP_EL1_INCLUDE_DIR}       # Note that this is PRIVATE, so it won't leak into user application
+                                                # Q: Is that a feature or a bug?
             )
 
     target_link_libraries(bmboot_payload_runtime PUBLIC
@@ -46,7 +55,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
             )
 
     target_link_options(bmboot_payload_runtime PUBLIC
-            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor_domain/zynqmp/cpu1/payload.ld
+            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor/payload/payload.ld
 
             # These are necessary when syscalls.cpp is in a static library: https://stackoverflow.com/q/34986536
             -Wl,--undefined=_close
@@ -107,22 +116,26 @@ elseif (BUILD_MONITOR)
 
     add_executable(monitor_zynqmp_cpu1.elf
             include/bmboot.hpp
-            include/bmboot/payload_runtime.hpp
-            src/mach/zynqmp_baremetal.cpp
-            src/executor_domain/executor_lowlevel.S
-            src/executor_domain/monitor.cpp
-            src/bmboot_internal.hpp
-            src/executor_domain/payload_runtime.cpp
+            src/executor/executor_asm.S
+            src/executor/monitor/monitor_asm.S
+            src/executor/monitor/monitor.cpp
+            src/executor/payload/payload_runtime.cpp        # TODO: this must be split between monitor/payload
+            src/platform/zynqmp/executor/asm_vectors.S
+            src/platform/zynqmp/executor/monitor/interrupt_controller.cpp
+            src/platform/zynqmp/executor/monitor/vectors_el3.cpp
             src/utility/crc32.c
-
-            src/executor_domain/zynqmp/el3/vectors_el3.cpp
-            src/executor_domain/zynqmp/asm_vectors.S
             )
 
     # -----------------------------------------------------------------------------------------------------------
 
     target_include_directories(monitor_zynqmp_cpu1.elf PRIVATE
             include
+            src
+            src/executor
+            src/executor/monitor
+            src/platform/zynqmp/executor
+            src/platform/zynqmp/executor/monitor
+
             ${BMBOOT_BSP_EL3_INCLUDE_DIR}
             )
     target_compile_features(monitor_zynqmp_cpu1.elf PUBLIC cxx_std_20)
@@ -131,7 +144,7 @@ elseif (BUILD_MONITOR)
             ${BMBOOT_BSP_EL3_LIBRARIES}
             )
     target_link_options(monitor_zynqmp_cpu1.elf PRIVATE
-            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor_domain/zynqmp/cpu1/monitor.ld
+            -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor/monitor/monitor.ld
             )
 
     add_custom_command(TARGET monitor_zynqmp_cpu1.elf POST_BUILD
@@ -235,11 +248,11 @@ else()
             include/bmboot.hpp
             include/bmboot/domain.hpp
             src/bmboot_internal.hpp
-            src/mach/zynqmp_linux.cpp
             src/manager/coredump_linux.cpp
-            src/utility/crc32.c
             src/manager/domain.cpp
             src/manager/domain_helpers.cpp
+            src/platform/zynqmp/manager/zynqmp_manager.cpp
+            src/utility/crc32.c
             src/utility/to_string.cpp
 
             ${MONITOR_ZYNQMP_CPU1_HPP}
@@ -248,7 +261,12 @@ else()
     add_dependencies(bmboot_manager monitor_zynqmp)
 
     target_include_directories(bmboot_manager PUBLIC include)
-    target_include_directories(bmboot_manager PRIVATE ${GENERATED_INCLUDE})
+    target_include_directories(bmboot_manager PRIVATE
+            src
+            src/platform/zynqmp/manager
+
+            ${GENERATED_INCLUDE}
+            )
 
 #    target_compile_features(bmboot_manager cpp20)
 #    set_property(TARGET bmboot_manager PROPERTY CXX_STANDARD 20)

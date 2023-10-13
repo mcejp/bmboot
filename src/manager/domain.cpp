@@ -2,13 +2,15 @@
 //! @brief  Domain management
 //! @author Martin Cejp
 
-#include "../mach/mach_linux.hpp"
 #include "../bmboot_internal.hpp"
 #include "bmboot/domain.hpp"
 #include "coredump_linux.hpp"
 #include "../utility/mmap.hpp"
 
 #include "monitor_zynqmp_cpu1.hpp"
+
+// This, of course, negates any attempt to keep platform-specific stuff contained.
+#include "zynqmp_manager.hpp"
 
 #include <cstring>
 #include <variant>

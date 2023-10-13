@@ -1,17 +1,17 @@
 //! @file
-//! @brief  Machine-specific functions, bare metal
+//! @brief  GICv2 interrupt controller
 //! @author Martin Cejp
 
 #pragma once
 
 #include "bmboot.hpp"
-#include "mach_baremetal_defs.hpp"
 
 #include <span>
 
-namespace bmboot::mach
+namespace bmboot::platform
 {
 
+// ABSTRACTION LEAK: Groups are a GIC-specific concept
 enum class InterruptGroup
 {
     group0_fiq_el3,
@@ -51,7 +51,8 @@ void teardownEl1Interrupts();
 void sendIpiMessage(std::span<const std::byte> message);
 
 void disablePrivatePeripheralInterrupt(int ch);
-void enableCpuInterrupts();
+//void enableCpuInterrupts();
+void setupInterrupts();
 void enableIpiReception(int src_channel);
 
 //! Unmask a given Private Peripheral Interrupt (PPI) for the current CPU.
@@ -75,6 +76,6 @@ void enableSharedPeripheralInterruptAndRouteToCpu(int ch,
                                                   InterruptGroup group,
                                                   MonitorInterruptPriority priority);
 
-void handleTimerIrq();
+
 
 }

@@ -4,9 +4,9 @@
 
 #include <bmboot/payload_runtime.hpp>
 
-#include "executor_lowlevel.hpp"
-#include "zynqmp/el1/payload_runtime_internal.hpp"
-#include "../mach/mach_baremetal.hpp"
+#include "executor_asm.hpp"
+#include "payload_runtime_internal.hpp"
+//#include "platform_interrupt_controller.hpp" !!
 
 #include <cstring>
 
@@ -54,7 +54,7 @@ void bmboot::stopPeriodicInterrupt()
 }
 #endif
 
-void bmboot::mach::handleTimerIrq()
+void internal::handleTimerIrq()
 {
     if (timer_irq_handler)
     {
