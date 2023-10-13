@@ -37,10 +37,19 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
         return ErrorCode::mmap_failed;
     }
 
-    base_0xFD1A0000.write32(0x0104, 0x0000380E);           // assert reset on CPU1
-    base_0xFD5C0000.write32(0x0048, reset_address);        // set initial address
-    base_0xFD5C0000.write32(0x004C, reset_address >> 32);
-    base_0xFD1A0000.write32(0x0104, 0x0000300C);           // de-assert reset on CPU1
+    // De-assert core reset through the RST_FPD_APU control register
+    // https://docs.xilinx.com/r/en-US/ug1087-zynq-ultrascale-registers/RST_FPD_APU-CRF_APB-Register
+    //
+    // Essentially, this can only be done once per SoC reset. See note in UG1085 Chapter 38:
+    // > IMPORTANT: The system can hang when software reset control is asserted during a pending AXI/APB
+    // > transfer.
+    //
+    // And thus, Bmboot was born.
+    auto init_val = base_0xFD1A0000.read32(0x0104);
+    base_0xFD1A0000.write32(0x0104, init_val | (1 << 1));       // assert reset on CPU1
+    base_0xFD5C0000.write32(0x0048, reset_address);             // set initial address: RVBARADDR1L
+    base_0xFD5C0000.write32(0x004C, reset_address >> 32);       //                      RVBARADDR1H
+    base_0xFD1A0000.write32(0x0104, init_val & ~(1 << 1));      // de-assert reset on CPU1
 
     return {};
 }
