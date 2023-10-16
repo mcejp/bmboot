@@ -139,7 +139,7 @@ static MaybeError load_to_physical_memory(uintptr_t address, std::span<uint8_t c
 
     memcpy(code_area.data(), binary.data(), binary.size());
 
-    __clear_cache(code_area.data(), (uint8_t*) code_area.data() + MONITOR_CODE_SIZE);
+    __clear_cache(code_area.data(), (uint8_t*) code_area.data() + size_aligned);
 
     code_area.unmap();
 
@@ -500,6 +500,7 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
 
     // initialize IPC block
     memset((void*) &m_ipc_block, 0, MONITOR_IPC_SIZE);
+    m_ipc_block.executor_to_manager.state = DomainState::invalid_state;
 
     // flush the IPC region to DDR (since the SCU is not in effect yet and CPUn will come up with cold caches)
     __clear_cache(&m_ipc_block, (uint8_t*) &m_ipc_block + MONITOR_IPC_SIZE);

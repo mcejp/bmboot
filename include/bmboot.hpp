@@ -35,6 +35,7 @@ enum DomainIndex
 enum ErrorCode
 {
     bad_domain_state,                   //!< The requested operation is not permitted in the current state
+    hw_resource_unavailable,            //!< Hardware resource unavailable
     payload_start_timed_out,            //!< The payload failed to confirm a successful start-up within the timeout
     payload_checksum_mismatch,          //!< Payload checksum failed to validate
     payload_crashed_during_startup,     //!< The payload crashed before confirming a successful start-up

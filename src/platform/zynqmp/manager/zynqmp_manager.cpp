@@ -37,6 +37,8 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
         return ErrorCode::mmap_failed;
     }
 
+    int cpu_index = 1;
+
     // De-assert core reset through the RST_FPD_APU control register
     // https://docs.xilinx.com/r/en-US/ug1087-zynq-ultrascale-registers/RST_FPD_APU-CRF_APB-Register
     //
@@ -46,10 +48,16 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
     //
     // And thus, Bmboot was born.
     auto init_val = base_0xFD1A0000.read32(0x0104);
-    base_0xFD1A0000.write32(0x0104, init_val | (1 << 1));       // assert reset on CPU1 -- TODO: instead should check that it is already there
+
+    // acpuN_reset or acpuN_pwron_reset must be set, otherwise the core is already running
+    if ((init_val & (0x401 << cpu_index)) == 0)
+    {
+        return ErrorCode::hw_resource_unavailable;
+    }
+
     base_0xFD5C0000.write32(0x0048, reset_address);             // set initial address: RVBARADDR1L
     base_0xFD5C0000.write32(0x004C, reset_address >> 32);       //                      RVBARADDR1H
-    base_0xFD1A0000.write32(0x0104, init_val & ~(1 << 1));      // de-assert reset on CPU1
+    base_0xFD1A0000.write32(0x0104, init_val & ~(0x401 << cpu_index));      // de-assert POR + reset on CPU1
 
     return {};
 }
