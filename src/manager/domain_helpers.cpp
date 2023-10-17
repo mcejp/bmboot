@@ -2,6 +2,7 @@
 
 #include "../utility/crc32.hpp"
 
+#include <csignal>
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -11,13 +12,23 @@ using namespace bmboot;
 using namespace std::chrono_literals;
 using std::chrono::milliseconds;
 
+static std::atomic<bool> console_interrupted;
+
 void bmboot::displayOutputContinuously(IDomain& domain)
 {
-    std::stringstream stdout_accum;
+    console_interrupted = false;
+
+    struct sigaction sa;
+    sa.sa_handler = [](int signal) { console_interrupted = true; };
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, nullptr);
 
     auto start = std::chrono::system_clock::now();
 
-    for (;;)
+    std::stringstream stdout_accum;
+
+    while (!console_interrupted)
     {
         int c = domain.getchar();
 

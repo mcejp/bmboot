@@ -14,11 +14,12 @@ using namespace bmboot;
 
 static int usage()
 {
+    fprintf(stderr, "usage: bmctl boot <domain>\n");
     fprintf(stderr, "usage: bmctl core <domain>\n");
-    fprintf(stderr, "usage: bmctl exec <domain> <payload>\n");
-    fprintf(stderr, "usage: bmctl reset <domain>\n");
+    fprintf(stderr, "usage: bmctl run <domain> <payload>\n");
+    fprintf(stderr, "usage: bmctl start <domain> <payload>\n");
     fprintf(stderr, "usage: bmctl status <domain>\n");
-    fprintf(stderr, "usage: bmctl startup <domain>\n");
+    fprintf(stderr, "usage: bmctl terminate <domain>\n");
     return -1;
 }
 
@@ -58,47 +59,7 @@ int main(int argc, char** argv)
 
     auto domain = throwOnError(IDomain::open(*domain_index), "IDomain::open");
 
-    if (strcmp(argv[1], "core") == 0)
-    {
-        auto err = domain->dumpCore("core");
-
-        if (err.has_value())
-        {
-            fprintf(stderr, "IDomain::dumpCore: error: %s\n", toString(*err).c_str());
-            return -1;
-        }
-    }
-    else if (strcmp(argv[1], "exec") == 0)
-    {
-        if (argc != 4)
-        {
-            return usage();
-        }
-
-        auto payload_filename = argv[3];
-
-        auto state = domain->getState();
-
-        if (state != DomainState::monitor_ready)
-        {
-            fprintf(stderr, "cannot execute payload: domain state %s != monitorReady\n", toString(state).c_str());
-        }
-        else
-        {
-            loadPayloadFromFileOrThrow(*domain, payload_filename);
-        }
-    }
-    else if (strcmp(argv[1], "reset") == 0)
-    {
-        auto err = domain->terminatePayload();
-
-        if (err.has_value())
-        {
-            fprintf(stderr, "IDomain::reset_domain: error: %s\n", toString(*err).c_str());
-            return -1;
-        }
-    }
-    else if (strcmp(argv[1], "startup") == 0)
+    if (strcmp(argv[1], "boot") == 0)
     {
         auto state = domain->getState();
 
@@ -121,9 +82,102 @@ int main(int argc, char** argv)
             fprintf(stderr, "cannot start domain up: domain state %s != inReset\n", toString(state).c_str());
         }
     }
+    else if (strcmp(argv[1], "core") == 0)
+    {
+        auto err = domain->dumpCore("core");
+
+        if (err.has_value())
+        {
+            fprintf(stderr, "IDomain::dumpCore: error: %s\n", toString(*err).c_str());
+            return -1;
+        }
+    }
+    else if (strcmp(argv[1], "run") == 0)
+    {
+        if (argc != 4)
+        {
+            return usage();
+        }
+
+        auto payload_filename = argv[3];
+
+        // boot if necessary
+
+        auto state = domain->getState();
+
+        if (state == DomainState::in_reset)
+        {
+            auto err = domain->startup();
+
+            if (err.has_value())
+            {
+                fprintf(stderr, "IDomain::startup_domain: error: %s\n", toString(*err).c_str());
+                return -1;
+            }
+
+            state = domain->getState();
+        }
+
+        // start
+
+        if (state != DomainState::monitor_ready)
+        {
+            fprintf(stderr, "cannot execute payload: domain state %s != monitorReady\n", toString(state).c_str());
+            return -1;
+        }
+        else
+        {
+            loadPayloadFromFileOrThrow(*domain, payload_filename);
+        }
+
+        // console
+
+        displayOutputContinuously(*domain);
+
+        // terminate
+
+        auto err = domain->terminatePayload();
+
+        if (err.has_value())
+        {
+            fprintf(stderr, "IDomain::reset_domain: error: %s\n", toString(*err).c_str());
+            return -1;
+        }
+    }
+    else if (strcmp(argv[1], "start") == 0)
+    {
+        if (argc != 4)
+        {
+            return usage();
+        }
+
+        auto payload_filename = argv[3];
+
+        auto state = domain->getState();
+
+        if (state != DomainState::monitor_ready)
+        {
+            fprintf(stderr, "cannot execute payload: domain state %s != monitorReady\n", toString(state).c_str());
+            return -1;
+        }
+        else
+        {
+            loadPayloadFromFileOrThrow(*domain, payload_filename);
+        }
+    }
     else if (strcmp(argv[1], "status") == 0)
     {
         display_domain_state(*domain);
+    }
+    else if (strcmp(argv[1], "terminate") == 0)
+    {
+        auto err = domain->terminatePayload();
+
+        if (err.has_value())
+        {
+            fprintf(stderr, "IDomain::reset_domain: error: %s\n", toString(*err).c_str());
+            return -1;
+        }
     }
     else
     {
