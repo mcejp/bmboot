@@ -3,16 +3,11 @@
 //! @author Martin Cejp
 
 #include "bmboot_internal.hpp"
+#include "executor.hpp"
 #include "executor_asm.hpp"
 #include "monitor_asm.hpp"
 #include "platform_interrupt_controller.hpp"
 #include "utility/crc32.hpp"
-
-//#include "../mach/mach_baremetal.hpp"
-//#include "bmboot/payload_runtime.hpp"
-//#include "executor_lowlevel.hpp"
-
-//#include "xpseudo_asm.h"
 
 using namespace bmboot;
 using namespace bmboot::internal;
@@ -23,9 +18,9 @@ static void dummy_payload();
 
 extern "C" int main()
 {
-    auto ipc_block = (volatile IpcBlock *) MONITOR_IPC_START;
-    volatile const auto& inbox = ipc_block->manager_to_executor;
-    volatile auto& outbox = ipc_block->executor_to_manager;
+    auto& ipc_block = (volatile IpcBlock &) getIpcBlock();
+    volatile const auto& inbox = ipc_block.manager_to_executor;
+    volatile auto& outbox = ipc_block.executor_to_manager;
 
     platform::setupInterrupts();
 

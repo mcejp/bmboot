@@ -1,4 +1,5 @@
 #include "platform_interrupt_controller.hpp"
+#include "executor.hpp"
 #include "executor_asm.hpp"
 #include "monitor_asm.hpp"
 #include "zynqmp_executor.hpp"
@@ -22,8 +23,6 @@ enum {
 using namespace bmboot;
 using namespace bmboot::internal;
 
-static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
-
 // FIXME: we call notifyPayloadCrashed even if it is the *monitor* crashing
 
 // ************************************************************
@@ -32,18 +31,21 @@ extern "C" void FIQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
-    if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::IPI_CH0_GIC_CHANNEL) {
+    auto my_ipi = mach::getIpiChannelForCpu(internal::getCpuIndex());
+
+    if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::getInterruptIdForIpi(my_ipi)) {
         // acknowledge IPI
-        auto source_mask = XIpiPsu_ReadReg(XPAR_PSU_IPI_0_S_AXI_BASEADDR, XIPIPSU_ISR_OFFSET);
-        XIpiPsu_WriteReg(XPAR_PSU_IPI_0_S_AXI_BASEADDR, XIPIPSU_ISR_OFFSET, source_mask);
+        auto ipi_base = mach::getIpiBaseAddress(my_ipi);
+        auto source_mask = XIpiPsu_ReadReg(ipi_base, XIPIPSU_ISR_OFFSET);
+        XIpiPsu_WriteReg(ipi_base, XIPIPSU_ISR_OFFSET, source_mask);
 
         XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
 
         // IRQ triggered by APU?
-        if (source_mask & (1 << mach::IPI_SRC_APU)) {
+        if (source_mask & mach::getIpiPeerMask(mach::IPI_SRC_BMBOOT_MANAGER)) {
             platform::teardownEl1Interrupts();
 
-            // reset monitor -- jump to entry
+            // reset monitor by jumping to entry point
             _boot();
         }
     }
@@ -126,7 +128,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 
                 platform::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
                                                                        platform::InterruptTrigger::edge,
-                                                                        mach::SELF_CPU_INDEX,
+                                                                       internal::getCpuIndex(),
                                                                        platform::InterruptGroup::group1_irq_el1,
                                                                         (platform::MonitorInterruptPriority) requestedPriority);
                 break;
@@ -142,6 +144,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 
     auto fault_address = get_ELR();
 
+    auto& ipc_block = getIpcBlock();
     saveFpuState(ipc_block.executor_to_manager.fpregs);
 
     ipc_block.executor_to_manager.regs = saved_regs;

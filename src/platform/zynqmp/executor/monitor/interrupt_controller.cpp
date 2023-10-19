@@ -3,6 +3,7 @@
 //! @author Martin Cejp
 
 #include "bmboot_internal.hpp"
+#include "executor.hpp"
 #include "platform_interrupt_controller.hpp"
 #include "zynqmp_executor.hpp"
 
@@ -15,6 +16,7 @@
 // TODO: NO MAGIC NUMBERS
 
 using namespace bmboot::internal;
+using namespace bmboot::mach;
 using namespace bmboot::platform;
 
 static bool interrupt_routed_to_el1[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
@@ -27,6 +29,23 @@ static uint32_t read32(size_t offset) {
 
 static void write32(size_t offset, uint32_t value) {
     *(uint32_t volatile*)offset = value;
+}
+
+// ************************************************************
+
+int bmboot::mach::getInterruptIdForIpi(IpiChannel ipi_channel)
+{
+    // Mapping of IPI channels to interrupt IDs can be found in UG1085, Table 13-1: System Interrupts
+    switch (ipi_channel)
+    {
+        case IpiChannel::ch0: return 67;
+        case IpiChannel::ch1: return 65;
+        case IpiChannel::ch2: return 66;
+        case IpiChannel::ch7: return 61;
+        case IpiChannel::ch8: return 62;
+        case IpiChannel::ch9: return 63;
+        case IpiChannel::ch10: return 64;
+    }
 }
 
 // ************************************************************
@@ -63,13 +82,15 @@ static void enableCpuInterrupts() {
 
 // ************************************************************
 
-void bmboot::platform::enableIpiReception(int src_channel)
+static void enableIpiReception(IpiChannel src_channel, IpiChannel dst_channel)
 {
+    uintptr_t base_address = getIpiBaseAddress(dst_channel);
+
     // clear any pending request
-    write32(0xFF300010, 1<<src_channel);
+    write32(base_address + 0x10, getIpiPeerMask(src_channel));
 
     // enable channel
-    write32(0xFF300018, 1<<src_channel);
+    write32(base_address + 0x18, getIpiPeerMask(src_channel));
 }
 
 // ************************************************************
@@ -208,13 +229,15 @@ void bmboot::platform::setupInterrupts()
 {
     // FIXME: there is no need to enable IRQs as we always route those to EL1.
     enableCpuInterrupts();
-    // IPI: set to Group0 (routed to FIQ, therefore EL3)
-    // apparently this is not the default even though ARM docs would make it seem so
-    platform::enableSharedPeripheralInterruptAndRouteToCpu(mach::IPI_CURRENT_CPU_GIC_CHANNEL,
+
+    // Enable IPI reception
+    auto my_ipi_channel = getIpiChannelForCpu(getCpuIndex());
+
+    platform::enableSharedPeripheralInterruptAndRouteToCpu(getInterruptIdForIpi(my_ipi_channel),
                                                            platform::InterruptTrigger::unchanged,
-                                                           mach::SELF_CPU_INDEX,
+                                                           getCpuIndex(),
                                                            platform::InterruptGroup::group0_fiq_el3,
                                                            platform::MonitorInterruptPriority::m7_max);
 
-    platform::enableIpiReception(0);
+    enableIpiReception(IPI_SRC_BMBOOT_MANAGER, my_ipi_channel);
 }

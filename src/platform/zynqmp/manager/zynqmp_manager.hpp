@@ -15,9 +15,9 @@
 namespace bmboot::mach
 {
 
-bool isZynqCpu1InReset(int devmem_fd);
-std::optional<ErrorCode> bootZynqCpu1(int devmem_fd, uintptr_t reset_address);
+bool isCoreInReset(int devmem_fd, DomainIndex domain_index);
+std::optional<ErrorCode> bootCore(int devmem_fd, DomainIndex domain_index, uintptr_t reset_address);
 
-void sendIpiMessage(int devmem_fd, std::span<const uint8_t> message);
+std::optional<ErrorCode> sendIpiMessage(int devmem_fd, DomainIndex domain_index, std::span<const uint8_t> message);
 
 }

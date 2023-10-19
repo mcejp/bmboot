@@ -29,6 +29,8 @@ enum DomainState
 enum DomainIndex
 {
     cpu1,
+    cpu2,
+    cpu3,
     max_domain,
 };
 

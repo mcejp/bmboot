@@ -7,7 +7,6 @@
 #include "executor.hpp"
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
-//#include "platform_interrupt_controller.hpp" !!
 
 #include <cstring>
 
@@ -16,8 +15,6 @@
 
 using namespace bmboot;
 using namespace bmboot::internal;
-
-static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
 
 static uint64_t timer_period_ticks;
 static InterruptHandler timer_irq_handler;
@@ -79,7 +76,7 @@ int bmboot::getCpuIndex()
 
 void bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address) {
 #if EL3
-    auto& outbox = ipc_block.executor_to_manager;
+    auto& outbox = getIpcBlock().executor_to_manager;
 
     outbox.fault_pc = address;
     outbox.fault_el = mfcp(currentEL);
@@ -95,7 +92,7 @@ void bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address) {
 
 void bmboot::notifyPayloadStarted() {
 #if EL3
-    ipc_block.executor_to_manager.state = DomainState::running_payload;
+    getIpcBlock().executor_to_manager.state = DomainState::running_payload;
 #else
     smc(SMC_NOTIFY_PAYLOAD_STARTED);
 #endif
@@ -103,6 +100,7 @@ void bmboot::notifyPayloadStarted() {
 
 int bmboot::writeToStdout(void const* data, size_t size) {
 #if EL3
+    auto& ipc_block = getIpcBlock();
     auto& outbox = ipc_block.executor_to_manager;
 
     // Here we want to be very conservative to be absolutely certain we will not overflow the buffer

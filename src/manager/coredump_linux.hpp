@@ -15,7 +15,8 @@ namespace bmboot::internal
 
 struct MemorySegment
 {
-    size_t start_address, size;
+    intptr_t start_address;
+    size_t size;
     void const* ptr;
 };
 

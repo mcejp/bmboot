@@ -3,6 +3,7 @@
 //! @author Martin Cejp
 
 #include "utility/mmap.hpp"
+#include "zynqmp.hpp"
 #include "zynqmp_manager.hpp"
 
 #include <cstring>
@@ -15,21 +16,36 @@
 using namespace bmboot;
 using namespace bmboot::mach;
 
+static int getCpuIndex(DomainIndex domain_index)
+{
+    switch (domain_index)
+    {
+        case DomainIndex::cpu1: return 1;
+        case DomainIndex::cpu2: return 2;
+        case DomainIndex::cpu3: return 3;
+
+        default:
+            std::terminate();
+    }
+}
+
 // ************************************************************
 
-bool mach::isZynqCpu1InReset(int devmem_fd) {
+bool mach::isCoreInReset(int devmem_fd, DomainIndex domain_index) {
     Mmap base_0xFD1A0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD1A0000);
 
     if (!base_0xFD1A0000) {
         return false;       // WRONG
     }
 
-    return (base_0xFD1A0000.read32(0x0104) & (1 << 1)) != 0;
+    auto cpu_index = getCpuIndex(domain_index);
+
+    return (base_0xFD1A0000.read32(0x0104) & (0x401 << cpu_index)) != 0;
 }
 
 // ************************************************************
 
-std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_address) {
+std::optional<ErrorCode> mach::bootCore(int devmem_fd, DomainIndex domain_index, uintptr_t reset_address) {
     Mmap base_0xFD1A0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD1A0000);
     Mmap base_0xFD5C0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD5C0000);
 
@@ -37,7 +53,7 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
         return ErrorCode::mmap_failed;
     }
 
-    int cpu_index = 1;
+    auto cpu_index = getCpuIndex(domain_index);
 
     // De-assert core reset through the RST_FPD_APU control register
     // https://docs.xilinx.com/r/en-US/ug1087-zynq-ultrascale-registers/RST_FPD_APU-CRF_APB-Register
@@ -55,8 +71,8 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
         return ErrorCode::hw_resource_unavailable;
     }
 
-    base_0xFD5C0000.write32(0x0048, reset_address);             // set initial address: RVBARADDR1L
-    base_0xFD5C0000.write32(0x004C, reset_address >> 32);       //                      RVBARADDR1H
+    base_0xFD5C0000.write32(0x0040 + cpu_index * 8, reset_address);         // set initial address: RVBARADDR1L
+    base_0xFD5C0000.write32(0x0044 + cpu_index * 8, reset_address >> 32);   //                      RVBARADDR1H
     base_0xFD1A0000.write32(0x0104, init_val & ~(0x401 << cpu_index));      // de-assert POR + reset on CPU1
 
     return {};
@@ -64,18 +80,61 @@ std::optional<ErrorCode> mach::bootZynqCpu1(int devmem_fd, uintptr_t reset_addre
 
 // ************************************************************
 
-void mach::sendIpiMessage(int devmem_fd, std::span<const uint8_t> message) {
+std::optional<ErrorCode> mach::sendIpiMessage(int devmem_fd, DomainIndex domain_index, std::span<const uint8_t> message) {
+    off_t message_buffer_base;
+
+    // Mapping of IPI channels to base addresses can be found in UG1085, Table 13-3: IPI Channel and Message Buffer Default Associations
+
+    switch (getIpiChannelForCpu(getCpuIndex(domain_index)))
+    {
+        case IpiChannel::ch0:
+            message_buffer_base = 0xFF99'0400;
+            break;
+
+        case IpiChannel::ch1:
+            message_buffer_base = 0xFF99'0000;
+            break;
+
+        case IpiChannel::ch2:
+            message_buffer_base = 0xFF99'0200;
+            break;
+
+        case IpiChannel::ch7:
+            message_buffer_base = 0xFF99'0600;
+            break;
+
+        case IpiChannel::ch8:
+            message_buffer_base = 0xFF99'0800;
+            break;
+
+        case IpiChannel::ch9:
+            message_buffer_base = 0xFF99'0A00;
+            break;
+
+        case IpiChannel::ch10:
+            message_buffer_base = 0xFF99'0C00;
+            break;
+
+        default:
+            return ErrorCode::hw_resource_unavailable;
+    }
+
+    off_t irq_base = getIpiBaseAddress(IPI_SRC_BMBOOT_MANAGER);
+
     Mmap base_0xFF990000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFF990000);
-    Mmap base_0xFF300000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFF300000);
+    Mmap irq_mmap(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, irq_base);
 
     uint32_t message_mirror[IPI_BUF_SIZE / 4];
     memcpy(message_mirror, message.data(), std::min<size_t>(message.size(), IPI_BUF_SIZE));
 
     // must be done with 32-bit access; memcpy will crash
     for (int i = 0; i < std::size(message_mirror); i++) {
-        base_0xFF990000.write32(IPI_BUF_APU_TO_APU_REQ - 0xFF990000 + i * 4, message_mirror[i]);
+        base_0xFF990000.write32(message_buffer_base - 0xFF990000 + i * 4, message_mirror[i]);
     }
 
     // trigger interrupt
-    base_0xFF300000.write32(0, 1);
+    auto receiver_channel = getIpiChannelForCpu(getCpuIndex(domain_index));
+    irq_mmap.write32(0, getIpiPeerMask(receiver_channel));
+
+    return {};
 }

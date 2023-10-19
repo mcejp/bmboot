@@ -9,9 +9,19 @@ using namespace std::string_view_literals;
 
 // ************************************************************
 
-std::optional<DomainIndex> bmboot::parseDomainIndex(std::string_view const& str) {
-    if (str == "cpu1"sv) {
+std::optional<DomainIndex> bmboot::parseDomainIndex(std::string_view const& str)
+{
+    if (str == "cpu1"sv)
+    {
         return DomainIndex::cpu1;
+    }
+    else if (str == "cpu2"sv)
+    {
+        return DomainIndex::cpu2;
+    }
+    else if (str == "cpu3"sv)
+    {
+        return DomainIndex::cpu3;
     }
     else {
         return {};

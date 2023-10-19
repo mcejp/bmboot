@@ -33,4 +33,43 @@ Additionally, these are mandatory:
 - BMBOOT_BSP_EL1_LIBRARIES
 
 
+User payloads
+=============
+
+The following CMake function should be used to declare payloads:
+
+.. code-block:: cmake
+
+  add_bmboot_payload(<name> [source1] [source2 ...])
+
+The ``<name>`` argument will be used as a basis for naming the instantiated targets, which can be several,
+in order to support multiple executor CPUs. All remaining arguments will be passed on to the underlying call(s) to
+`add_executable`_.
+
+.. _add_executable: https://cmake.org/cmake/help/latest/command/add_executable.html
+
+The complete list of targets created will be saved into a variable called ``<name>_TARGETS``.
+
+Voici un exemple:
+
+.. code-block:: cmake
+
+    cmake_minimum_required(VERSION 3.17)
+
+    project(hello_world C CXX ASM)
+
+    set(BMBOOT_BUILD_PAYLOAD 1)
+    add_subdirectory(../bmboot ${CMAKE_CURRENT_BINARY_DIR}/bmboot)
+
+    include(../bmboot/cmake/Bmboot.cmake)
+
+    add_bmboot_payload(hello_world src/main.cpp)
+
+    foreach (TARGET ${hello_world_TARGETS})
+        target_compile_definitions(${TARGET} PRIVATE HELLO=world)
+        target_include_directories(${TARGET} PRIVATE include)
+    endforeach()
+
+
+
 .. TODO: BSP concerns

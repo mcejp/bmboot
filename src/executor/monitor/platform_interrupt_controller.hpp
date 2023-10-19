@@ -53,7 +53,6 @@ void sendIpiMessage(std::span<const std::byte> message);
 void disablePrivatePeripheralInterrupt(int ch);
 //void enableCpuInterrupts();
 void setupInterrupts();
-void enableIpiReception(int src_channel);
 
 //! Unmask a given Private Peripheral Interrupt (PPI) for the current CPU.
 //!

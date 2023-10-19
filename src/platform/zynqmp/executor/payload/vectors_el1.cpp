@@ -1,4 +1,5 @@
 #include "bmboot/payload_runtime.hpp"
+#include "executor.hpp"
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
 #include "zynqmp_executor.hpp"
@@ -19,8 +20,6 @@
 
 using namespace bmboot;
 using namespace bmboot::internal;
-
-static auto& ipc_block = *(IpcBlock*) MONITOR_IPC_START;
 
 // ************************************************************
 
@@ -98,6 +97,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 {
     auto fault_address = get_ELR();
 
+    auto& ipc_block = getIpcBlock();
     saveFpuState(ipc_block.executor_to_manager.fpregs);
 
     ipc_block.executor_to_manager.regs = saved_regs;
