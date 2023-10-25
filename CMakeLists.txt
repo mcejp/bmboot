@@ -23,6 +23,8 @@ endif()
 
 project(bmboot C CXX ASM)
 
+include(cmake/Bmboot.cmake)
+
 function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
     set(TARGET bmboot_payload_runtime)
     add_library(${TARGET} STATIC
@@ -86,8 +88,6 @@ if (BMBOOT_BUILD_PAYLOAD)
     # -----------------------------------------------------------------------------------------------------------
 
     add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
-
-    include(cmake/Bmboot.cmake)
 
     add_bmboot_payload(bmboot_example_payload src/payloads/hello_world.cpp)
 
@@ -179,8 +179,6 @@ elseif (BUILD_MONITOR)
 
     add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
 
-    include(cmake/Bmboot.cmake)
-
     foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo)
         add_bmboot_payload(payload_${PAYLOAD} src/payloads/${PAYLOAD}.cpp)
     endforeach()
@@ -229,7 +227,10 @@ else()
                 -DBMBOOT_BSP_EL3_LIBRARIES=${BMBOOT_BSP_EL3_LIBRARIES}
             INSTALL_COMMAND ""
             BUILD_ALWAYS ON
-            BUILD_BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/monitor_zynqmp-prefix/src/monitor_zynqmp-build/monitor_zynqmp_cpu1.bin"
+            BUILD_BYPRODUCTS
+                "${CMAKE_CURRENT_BINARY_DIR}/monitor_zynqmp-prefix/src/monitor_zynqmp-build/monitor_zynqmp_cpu1.bin"
+                "${CMAKE_CURRENT_BINARY_DIR}/monitor_zynqmp-prefix/src/monitor_zynqmp-build/monitor_zynqmp_cpu2.bin"
+                "${CMAKE_CURRENT_BINARY_DIR}/monitor_zynqmp-prefix/src/monitor_zynqmp-build/monitor_zynqmp_cpu3.bin"
             )
 
     # We need to convert monitor binary to a C++ header
