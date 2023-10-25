@@ -118,7 +118,7 @@ elseif (BUILD_MONITOR)
                 src/executor/executor_asm.S
                 src/executor/monitor/monitor_asm.S
                 src/executor/monitor/monitor.cpp
-                src/executor/payload/payload_runtime.cpp        # TODO: this must be split between monitor/payload
+                src/executor/monitor/smc_handlers.cpp
                 src/platform/zynqmp/executor/asm_vectors.S
                 src/platform/zynqmp/executor/monitor/interrupt_controller.cpp
                 src/platform/zynqmp/executor/monitor/vectors_el3.cpp

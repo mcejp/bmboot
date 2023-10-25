@@ -229,7 +229,8 @@ MaybeError Domain::dumpCore(char const* filename)
 {
     auto state = getState();
 
-    if (state != DomainState::crashed_payload)
+    // TODO: This permits a core dump in case of a crashed monitor, but it will still only include the payload's memory
+    if (state != DomainState::crashed_payload && state != DomainState::crashed_monitor)
     {
         return ErrorCode::bad_domain_state;
     }

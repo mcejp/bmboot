@@ -37,6 +37,7 @@ std::string bmboot::toString(DomainState state) {
         case DomainState::starting_payload: return "starting_payload";
         case DomainState::running_payload: return "running_payload";
         case DomainState::crashed_payload: return "crashed_payload";
+        case DomainState::crashed_monitor: return "crashed_monitor";
         case DomainState::unavailable: return "unavailable";
         case DomainState::invalid_state: return "invalid_state";
         default: return "unknown state " + std::to_string((int) state);

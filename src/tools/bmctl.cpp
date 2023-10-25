@@ -31,7 +31,7 @@ static void display_domain_state(IDomain& domain)
 
     puts(toString(state).c_str());
 
-    if (state == DomainState::crashed_payload)
+    if (state == DomainState::crashed_monitor || state == DomainState::crashed_payload)
     {
         auto error_info = domain.getCrashInfo();
         printf("(at address 0x%zx)\n", error_info.pc);

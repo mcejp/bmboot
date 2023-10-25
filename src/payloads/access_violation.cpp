@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     bmboot::notifyPayloadStarted();
 
     // must not be too fast, otherwise it triggers payloadCrashedDuringStartup
-    usleep(10'000);
+    usleep(100'000);
 
     // something to find in subsequent core dump
     __asm__ volatile ("fmov d0, #0.5");

@@ -1,20 +1,13 @@
-#include "platform_interrupt_controller.hpp"
 #include "executor.hpp"
 #include "executor_asm.hpp"
-#include "monitor_asm.hpp"
+#include "monitor_internal.hpp"
+#include "platform_interrupt_controller.hpp"
 #include "zynqmp_executor.hpp"
 
-#include "bspconfig.h"
 #include "xipipsu.h"
 #include "xscugic.h"
-#include "xpseudo_asm.h"
-
-// This is a hack to get access to notifyPayloadCrashed
-#include "bmboot/payload_runtime.hpp"
 
 // ************************************************************
-
-#define EL_STRING "EL3"
 
 enum {
     EC_SMC = 0b010111,
@@ -23,15 +16,13 @@ enum {
 using namespace bmboot;
 using namespace bmboot::internal;
 
-// FIXME: we call notifyPayloadCrashed even if it is the *monitor* crashing
-
 // ************************************************************
 
 extern "C" void FIQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
-    auto my_ipi = mach::getIpiChannelForCpu(internal::getCpuIndex());
+    auto my_ipi = mach::getIpiChannelForCpu(getCpuIndex());
 
     if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::getInterruptIdForIpi(my_ipi)) {
         // acknowledge IPI
@@ -51,7 +42,7 @@ extern "C" void FIQInterrupt(void)
     }
 
     auto fault_address = iar; //get_ELR();
-    notifyPayloadCrashed("FIQInterrupt " EL_STRING, fault_address);
+    reportCrash(CrashingEntity::monitor, "Monitor FIQInterrupt", fault_address);
 
     // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
@@ -60,12 +51,13 @@ extern "C" void FIQInterrupt(void)
 
 // ************************************************************
 
+// Should never arrive to EL3
 extern "C" void IRQInterrupt(void)
 {
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
 
     auto fault_address = iar; //get_ELR();
-    notifyPayloadCrashed("IRQInterrupt " EL_STRING, fault_address);
+    reportCrash(CrashingEntity::monitor, "Monitor IRQInterrupt", fault_address);
 
     // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
@@ -84,61 +76,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 
     if (ec == EC_SMC)
     {
-        switch (saved_regs.regs[0])
-        {
-            case SMC_NOTIFY_PAYLOAD_STARTED:
-                notifyPayloadStarted();
-                break;
-
-            case SMC_NOTIFY_PAYLOAD_CRASHED:
-                // TODO: this call shall not return back to EL1
-                notifyPayloadCrashed((char const*) saved_regs.regs[1], (uintptr_t) saved_regs.regs[2]);
-                break;
-
-            case SMC_START_PERIODIC_INTERRUPT:
-                // stop timer if already running
-                mtcp(CNTP_CTL_EL0, 0);
-
-                // set to Group1 (routed to IRQ, therefore EL1)
-                platform::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL,
-                                                           platform::InterruptGroup::group1_irq_el1,
-                                                           platform::MonitorInterruptPriority::payloadMaxPriorityValue);
-
-                // configure timer & start it
-                mtcp(CNTP_TVAL_EL0, saved_regs.regs[1]);
-                mtcp(CNTP_CTL_EL0, 1);          // TODO: magic number!
-                break;
-
-            case SMC_STOP_PERIODIC_INTERRUPT:
-                // TOOD: disable IRQ etc.
-                mtcp(CNTP_CTL_EL0, 0);
-                break;
-
-            case SMC_WRITE_STDOUT:
-                saved_regs.regs[0] = writeToStdout((void const*) saved_regs.regs[1], (size_t) saved_regs.regs[2]);
-                break;
-
-            case SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE: {
-                int requestedPriority = saved_regs.regs[2];
-
-                if (requestedPriority < (int) platform::MonitorInterruptPriority::payloadMinPriorityValue ||
-                    requestedPriority > (int) platform::MonitorInterruptPriority::payloadMaxPriorityValue) {
-                    break;
-                }
-
-                platform::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
-                                                                       platform::InterruptTrigger::edge,
-                                                                       internal::getCpuIndex(),
-                                                                       platform::InterruptGroup::group1_irq_el1,
-                                                                        (platform::MonitorInterruptPriority) requestedPriority);
-                break;
-            }
-
-            default:
-                notifyPayloadCrashed("SMC " EL_STRING, saved_regs.regs[0]);
-                for (;;) {}
-        }
-
+        handleSmc(saved_regs);
         return;
     }
 
@@ -148,7 +86,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
     saveFpuState(ipc_block.executor_to_manager.fpregs);
 
     ipc_block.executor_to_manager.regs = saved_regs;
-    notifyPayloadCrashed("SynchronousInterrupt " EL_STRING, fault_address);
+    reportCrash(CrashingEntity::monitor, "Monitor SynchronousInterrupt", fault_address);
     for (;;) {}
 }
 
@@ -157,6 +95,6 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 extern "C" void SErrorInterrupt(void)
 {
     auto fault_address = get_ELR();
-    notifyPayloadCrashed("SErrorInterrupt " EL_STRING, fault_address);
+    reportCrash(CrashingEntity::monitor, "Monitor SErrorInterrupt", fault_address);
     for (;;) {}
 }

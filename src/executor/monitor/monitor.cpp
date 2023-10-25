@@ -5,7 +5,7 @@
 #include "bmboot_internal.hpp"
 #include "executor.hpp"
 #include "executor_asm.hpp"
-#include "monitor_asm.hpp"
+#include "monitor_internal.hpp"
 #include "platform_interrupt_controller.hpp"
 #include "utility/crc32.hpp"
 

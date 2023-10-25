@@ -22,6 +22,7 @@ enum DomainState
     starting_payload,           //!< A payload has been loaded and is initializing
     running_payload,            //!< A payload is executing
     crashed_payload,            //!< A payload has encountered an unrecoverable error
+    crashed_monitor,            //!< The monitor has encountered an unrecoverable error
     unavailable,                //!< The CPU core is running but the bmboot monitor is not present
     invalid_state,              //!< The executors reports an invalid state
 };

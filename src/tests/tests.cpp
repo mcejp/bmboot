@@ -124,7 +124,7 @@ TEST_F(BmbootFixture, hello_world)
     // 1. load payload_hello_world
     // 2. assert that it starts correctly
 
-    execute_payload("payload_hello_world.bin");
+    execute_payload("payload_hello_world_cpu1.bin");
 
     auto state = domain->getState();
     ASSERT_EQ(state, DomainState::running_payload);
@@ -141,7 +141,7 @@ TEST_F(BmbootFixture, access_violation)
     // 6. load payload_hello_world
     // 7. assert that it starts correctly
 
-    execute_payload("payload_access_violation.bin");
+    execute_payload("payload_access_violation_cpu1.bin");
 
     std::this_thread::sleep_for(50ms);
 
@@ -158,7 +158,7 @@ TEST_F(BmbootFixture, access_violation)
     ASSERT_GT(st.st_size, 4096);
 
     // Invoke gdb in batch mode to extract the stack trace
-    auto output = execute_command_and_capture_output("gdb --batch -n -ex bt payload_access_violation.elf core");
+    auto output = execute_command_and_capture_output("gdb --batch -n -ex bt payload_access_violation_cpu1.elf core");
     // Watch out; the format changes depending on whether the payload was built with debug information:
     // Release:        in access_invalid_memory()
     // RelWithDebInfo: in access_invalid_memory () at ...
@@ -167,7 +167,7 @@ TEST_F(BmbootFixture, access_violation)
     // Reset domain
     throw_for_err(domain->terminatePayload());
 
-    execute_payload("payload_hello_world.bin");
+    execute_payload("payload_hello_world_cpu1.bin");
 
     state = domain->getState();
     ASSERT_EQ(state, DomainState::running_payload);
