@@ -6,6 +6,8 @@
 
 #include "bmboot.hpp"
 
+#include <functional>
+
 namespace bmboot
 {
 
@@ -26,7 +28,7 @@ enum class PayloadInterruptPriority
 };
 
 //! Callback function for the periodic interrupt
-using InterruptHandler = void (*)();
+using InterruptHandler = std::function<void()>;
 
 //! Get the CPU core on which the program is executing
 //!
