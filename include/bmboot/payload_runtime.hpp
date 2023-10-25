@@ -9,18 +9,20 @@
 namespace bmboot
 {
 
-// higher value = lower priority
-// the resolution is implementation-defined, on the Zynq the upper 4 bits of the byte should be taken into consideration
+//! User interrupt priority.
+//!
+//! Higher numerical value corresponds to lower priority.
+//! The resolution is implementation-defined, on the Zynq the upper 4 bits of the byte matter for preemption purposes.
 enum class PayloadInterruptPriority
 {
-    p7_max = 0x80,
-    p6 = 0x90,
-    p5 = 0xA0,
-    p4 = 0xB0,
-    p3 = 0xC0,
-    p2 = 0xD0,
-    p1 = 0xE0,
-    p0_min = 0xF0,
+    p7_max = 0x80,         //!< Highest priority available to payload code (0x80)
+    p6 = 0x90,             //!< Intermediate priority (0x90)
+    p5 = 0xA0,             //!< Intermediate priority (0xA0)
+    p4 = 0xB0,             //!< Intermediate priority (0xB0)
+    p3 = 0xC0,             //!< Intermediate priority (0xC0)
+    p2 = 0xD0,             //!< Intermediate priority (0xD0)
+    p1 = 0xE0,             //!< Intermediate priority (0xE0)
+    p0_min = 0xF0,         //!< Lowest priority (0xF0)
 };
 
 //! Callback function for the periodic interrupt
@@ -45,6 +47,11 @@ void startPeriodicInterrupt(int period_us, InterruptHandler handler);
 //! Stop the periodic interrupt, if it is running.
 void stopPeriodicInterrupt();
 
+//! Configure and enable the reception of a peripheral interrupt.
+//!
+//! @param interruptId Platform-specific interrupt ID
+//! @param priority Interrupt priority. A high-priority interrupt may preempt a low priority one.
+//! @param handler Callback function
 void configureAndEnableInterrupt(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler);
 
 //! Write to the standard output.

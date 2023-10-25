@@ -4,8 +4,8 @@ How to build it
 
 The build system is driven by CMake. A tricky aspect of it is the requirement to use two separate toolchains:
 
-- ``aarch64-none-linux-gnu-gcc`` 10.3+ (Linux)
-- ``aarch64-none-elf-gcc`` 10.3+ (bare metal)
+- ``aarch64-none-linux-gnu-gcc`` 12.3 (Linux)
+- ``aarch64-none-elf-gcc`` 12.3 (bare metal)
 
 The build system operates in one of 3 modes:
 

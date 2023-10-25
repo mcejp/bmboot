@@ -10,3 +10,9 @@
 - cache-coherent memory is assumed
 - monitor at EL3, payload at EL1
 - code is C++20 but with appropriate constraints for the low-level portions
+
+### Building docs
+
+```
+doxygen Doxyfile; and python3 -m sphinx_autobuild doc doc/_build
+```

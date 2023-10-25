@@ -81,11 +81,7 @@ needs_types = [dict(directive="req", title="Requirement", prefix="R_", color="#B
                dict(directive="impl", title="Implementation", prefix="I_", color="#DF744A", style="node"),
                dict(directive="test", title="Test Case", prefix="T_", color="#DCB239", style="node"),
                # bmboot custom
-               # 'exception' is already taken by a deprecated built-in
-               dict(directive="exceptn", title="Exception", prefix="EXC_", color="#9856a5", style="node"),
                dict(directive="question", title="Question", prefix="Q_", color="#9856a5", style="node")
                ]
 
-needs_extra_options = ['severity',
-                       'handler', 'source', 'symptom',    # exceptn
-                       ]
+needs_extra_options = ['severity']
