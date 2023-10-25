@@ -17,7 +17,7 @@ namespace bmboot::internal
 using Cookie = uint32_t;
 constexpr inline Cookie MONITOR_CODE_COOKIE = 0x7150ABCD;
 
-constexpr inline int GIC_MIN_USER_INTERRUPT_ID = 121;
+constexpr inline int GIC_MIN_USER_INTERRUPT_ID = 0;
 constexpr inline int GIC_MAX_USER_INTERRUPT_ID = 128;     // inclusive
 
 enum
@@ -28,11 +28,9 @@ enum
 enum {
     SMC_NOTIFY_PAYLOAD_STARTED = 0xF2000000,
     SMC_NOTIFY_PAYLOAD_CRASHED,
-    SMC_START_PERIODIC_INTERRUPT,
-    SMC_STOP_PERIODIC_INTERRUPT,
     SMC_WRITE_STDOUT,
 
-    SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE,
+    SMC_ZYNQMP_GIC_IRQ_CONFIGURE_AND_ENABLE,
 };
 
 enum Command

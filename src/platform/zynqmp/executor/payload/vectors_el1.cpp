@@ -42,20 +42,9 @@ extern "C" void IRQInterrupt(void)
     auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
     auto int_id = (iar & XSCUGIC_ACK_INTID_MASK);
 
-    if (int_id == mach::CNTPNS_IRQ_CHANNEL) {
-        // Private timer interrupt
-
-        if ((mfcp(CNTP_CTL_EL0) & 4) != 0)  // check that the timer is really signalled -- just for good measure
-        {
-            handleTimerIrq();
-        }
-
-        XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
-        return;
-    }
-    else if (int_id >= GIC_MIN_USER_INTERRUPT_ID &&
-             int_id <= GIC_MAX_USER_INTERRUPT_ID &&
-             user_interrupt_handlers[int_id - GIC_MIN_USER_INTERRUPT_ID])
+    if (int_id >= GIC_MIN_USER_INTERRUPT_ID &&
+        int_id <= GIC_MAX_USER_INTERRUPT_ID &&
+        user_interrupt_handlers[int_id - GIC_MIN_USER_INTERRUPT_ID])
     {
         // Back up SPSR and ELR before re-enabling interrupts
         //

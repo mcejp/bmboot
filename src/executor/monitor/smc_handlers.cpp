@@ -81,30 +81,12 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
             // TODO: returns to EL1 so that we can be interrupted by IPI. should it be like that, though?
             break;
 
-        case SMC_START_PERIODIC_INTERRUPT:
-            // stop timer if already running
-            mtcp(CNTP_CTL_EL0, 0);
-
-            // set to Group1 (routed to IRQ, therefore EL1)
-            platform::enablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL,
-                                                       platform::InterruptGroup::group1_irq_el1,
-                                                       platform::MonitorInterruptPriority::payloadMaxPriorityValue);
-
-            // configure timer & start it
-            mtcp(CNTP_TVAL_EL0, saved_regs.regs[1]);
-            mtcp(CNTP_CTL_EL0, 1);          // TODO: magic number!
-            break;
-
-        case SMC_STOP_PERIODIC_INTERRUPT:
-            // TOOD: disable IRQ etc.
-            mtcp(CNTP_CTL_EL0, 0);
-            break;
-
         case SMC_WRITE_STDOUT:
             saved_regs.regs[0] = writeToStdout((void const*) saved_regs.regs[1], (size_t) saved_regs.regs[2]);
             break;
 
-        case SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE: {
+        case SMC_ZYNQMP_GIC_IRQ_CONFIGURE_AND_ENABLE: {
+            int interruptId = saved_regs.regs[1];
             int requestedPriority = saved_regs.regs[2];
 
             if (requestedPriority < (int) platform::MonitorInterruptPriority::payloadMinPriorityValue ||
@@ -112,11 +94,23 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
                 break;
             }
 
-            platform::enableSharedPeripheralInterruptAndRouteToCpu(saved_regs.regs[1],
-                                                                   platform::InterruptTrigger::edge,
-                                                                   internal::getCpuIndex(),
-                                                                   platform::InterruptGroup::group1_irq_el1,
-                                                                    (platform::MonitorInterruptPriority) requestedPriority);
+            if (interruptId >= 16 && interruptId < 32)
+            {
+                // PPI
+                platform::enablePrivatePeripheralInterrupt(interruptId,
+                                                           platform::InterruptGroup::group1_irq_el1,
+                                                           (platform::MonitorInterruptPriority) requestedPriority);
+            }
+            else if (interruptId >= 32)
+            {
+                // SPI
+                platform::enableSharedPeripheralInterruptAndRouteToCpu(interruptId,
+                                                                       platform::InterruptTrigger::edge,
+                                                                       internal::getCpuIndex(),
+                                                                       platform::InterruptGroup::group1_irq_el1,
+                                                                        (platform::MonitorInterruptPriority) requestedPriority);
+            }
+
             break;
         }
 

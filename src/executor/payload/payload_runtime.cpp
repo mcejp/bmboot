@@ -7,6 +7,7 @@
 #include "executor.hpp"
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
+#include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
 #include "xpseudo_asm.h"
@@ -27,29 +28,42 @@ void bmboot::configureAndEnableInterrupt(int interruptId, PayloadInterruptPriori
         return;
     }
 
-    user_interrupt_handlers[interruptId - GIC_MIN_USER_INTERRUPT_ID] = handler;
+    user_interrupt_handlers[interruptId - GIC_MIN_USER_INTERRUPT_ID] = std::move(handler);
 
-    smc(SMC_ZYNQMP_GIC_SPI_CONFIGURE_AND_ENABLE, interruptId, (int) priority);
+    smc(SMC_ZYNQMP_GIC_IRQ_CONFIGURE_AND_ENABLE, interruptId, (int) priority);
 }
 
 void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
 {
-    // Perhaps this could be refactored so that only the IRQ setup is done via SMC and we configure the timer directly
-
     // ticks = duration_us * timer_freq_Hz / 1e6
     timer_period_ticks = (uint64_t) period_us * mfcp(CNTFRQ_EL0) / 1'000'000;
-    timer_irq_handler = handler;
+    timer_irq_handler = std::move(handler);
 
-    smc(SMC_START_PERIODIC_INTERRUPT, timer_period_ticks);
+    // stop timer if already running
+    mtcp(CNTP_CTL_EL0, 0);
+
+    configureAndEnableInterrupt(mach::CNTPNS_IRQ_CHANNEL,
+                                PayloadInterruptPriority::p7_max,
+                                handleTimerIrq);
+
+    // configure timer & start it
+    mtcp(CNTP_TVAL_EL0, timer_period_ticks);
+    mtcp(CNTP_CTL_EL0, 1);          // TODO: magic number!
 }
 
 void bmboot::stopPeriodicInterrupt()
 {
-    smc(SMC_STOP_PERIODIC_INTERRUPT);
+    // TOOD: disable IRQ etc.
+    mtcp(CNTP_CTL_EL0, 0);
 }
 
 void internal::handleTimerIrq()
 {
+    if ((mfcp(CNTP_CTL_EL0) & 4) == 0)  // check that the timer is really signalled -- just for good measure
+    {
+        return;
+    }
+
     if (timer_irq_handler)
     {
         timer_irq_handler();
