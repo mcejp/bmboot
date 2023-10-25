@@ -28,6 +28,11 @@ enum class PayloadInterruptPriority
 //! Callback function for the periodic interrupt
 using InterruptHandler = void (*)();
 
+//! Get the CPU core on which the program is executing
+//!
+//! \return CPU core number, counted from 0
+int getCpuIndex();
+
 //! Escalate to the monitor after a crash has been detected.
 //! This would not normally be called by user code.
 //!

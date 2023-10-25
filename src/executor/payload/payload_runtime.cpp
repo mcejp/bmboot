@@ -4,6 +4,7 @@
 
 #include <bmboot/payload_runtime.hpp>
 
+#include "executor.hpp"
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
 //#include "platform_interrupt_controller.hpp" !!
@@ -69,6 +70,11 @@ void internal::handleTimerIrq()
     mtcp(CNTP_CVAL_EL0, mfcp(CNTP_CVAL_EL0) + timer_period_ticks);
     // ...or disable the interrupt
 //    mtcp(CNTP_CTL_EL0, 0);
+}
+
+int bmboot::getCpuIndex()
+{
+    return internal::getCpuIndex();
 }
 
 void bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address) {
