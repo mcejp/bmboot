@@ -20,7 +20,12 @@ static InterruptHandler timer_irq_handler;
 
 InterruptHandler internal::user_interrupt_handlers[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
 
-void bmboot::configureAndEnableInterrupt(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler)
+void bmboot::enableInterruptHandling(int interruptId)
+{
+    smc(SMC_ZYNQMP_GIC_IRQ_ENABLE, interruptId);
+}
+
+void bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler)
 {
     if (interruptId < GIC_MIN_USER_INTERRUPT_ID || interruptId > GIC_MAX_USER_INTERRUPT_ID)
     {
@@ -30,7 +35,7 @@ void bmboot::configureAndEnableInterrupt(int interruptId, PayloadInterruptPriori
 
     user_interrupt_handlers[interruptId - GIC_MIN_USER_INTERRUPT_ID] = std::move(handler);
 
-    smc(SMC_ZYNQMP_GIC_IRQ_CONFIGURE_AND_ENABLE, interruptId, (int) priority);
+    smc(SMC_ZYNQMP_GIC_IRQ_CONFIGURE, interruptId, (int) priority);
 }
 
 void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
@@ -42,9 +47,10 @@ void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
     // stop timer if already running
     mtcp(CNTP_CTL_EL0, 0);
 
-    configureAndEnableInterrupt(mach::CNTPNS_IRQ_CHANNEL,
-                                PayloadInterruptPriority::p7_max,
-                                handleTimerIrq);
+    setupInterruptHandling(mach::CNTPNS_IRQ_CHANNEL,
+                           PayloadInterruptPriority::p7_max,
+                           handleTimerIrq);
+    enableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
 
     // configure timer & start it
     mtcp(CNTP_TVAL_EL0, timer_period_ticks);

@@ -85,7 +85,7 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
             saved_regs.regs[0] = writeToStdout((void const*) saved_regs.regs[1], (size_t) saved_regs.regs[2]);
             break;
 
-        case SMC_ZYNQMP_GIC_IRQ_CONFIGURE_AND_ENABLE: {
+        case SMC_ZYNQMP_GIC_IRQ_CONFIGURE: {
             int interruptId = saved_regs.regs[1];
             int requestedPriority = saved_regs.regs[2];
 
@@ -100,7 +100,6 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
                 platform::configurePrivatePeripheralInterrupt(interruptId,
                                                               platform::InterruptGroup::group1_irq_el1,
                                                               (platform::MonitorInterruptPriority) requestedPriority);
-                platform::enableInterrupt(interruptId);
             }
             else if (interruptId >= 32)
             {
@@ -110,9 +109,15 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
                                                                           internal::getCpuIndex(),
                                                                           platform::InterruptGroup::group1_irq_el1,
                                                                           (platform::MonitorInterruptPriority) requestedPriority);
-                platform::enableInterrupt(interruptId);
             }
 
+            break;
+        }
+
+        case SMC_ZYNQMP_GIC_IRQ_ENABLE: {
+            int interruptId = saved_regs.regs[1];
+
+            platform::enableInterrupt(interruptId);
             break;
         }
 

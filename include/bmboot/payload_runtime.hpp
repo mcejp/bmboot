@@ -54,12 +54,20 @@ void startPeriodicInterrupt(int period_us, InterruptHandler handler);
 //! Stop the periodic interrupt, if it is running.
 void stopPeriodicInterrupt();
 
-//! Configure and enable the reception of a peripheral interrupt.
+//! Configure the reception of a peripheral interrupt.
 //!
 //! @param interruptId Platform-specific interrupt ID
 //! @param priority Interrupt priority. A high-priority interrupt may preempt a low priority one.
 //! @param handler Callback function
-void configureAndEnableInterrupt(int interrupt_id, PayloadInterruptPriority priority, InterruptHandler handler);
+void setupInterruptHandling(int interrupt_id, PayloadInterruptPriority priority, InterruptHandler handler);
+
+//! Enable the reception of a peripheral interrupt.
+//!
+//! @link bmboot::setupInterruptHandling @endlink must be called first to configure the interrupt handler and priority.
+//! Otherwise, the behavior is unpredictable.
+//!
+//! @param interruptId Platform-specific interrupt ID
+void enableInterruptHandling(int interruptId);
 
 //! Write to the standard output.
 //!

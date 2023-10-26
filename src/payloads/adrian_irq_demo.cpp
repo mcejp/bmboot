@@ -22,8 +22,10 @@ int main(int argc, char** argv)
 
     printf("Adrian IRQ demo\nNOTE: This code only works with a specific, unofficial gateware build.\n\n");
 
-    bmboot::configureAndEnableInterrupt(INTERRUPT_ID_ADRIAN_100US, bmboot::PayloadInterruptPriority::p1, on100us);
-    bmboot::configureAndEnableInterrupt(INTERRUPT_ID_ADRIAN_1000US, bmboot::PayloadInterruptPriority::p0_min, on1000us);
+    bmboot::setupInterruptHandling(INTERRUPT_ID_ADRIAN_100US, bmboot::PayloadInterruptPriority::p1, on100us);
+    bmboot::setupInterruptHandling(INTERRUPT_ID_ADRIAN_1000US, bmboot::PayloadInterruptPriority::p0_min, on1000us);
+    bmboot::enableInterruptHandling(INTERRUPT_ID_ADRIAN_100US);
+    bmboot::enableInterruptHandling(INTERRUPT_ID_ADRIAN_1000US);
 
     for (;;) {
         sleep(1);
