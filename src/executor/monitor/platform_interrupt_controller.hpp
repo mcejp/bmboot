@@ -60,21 +60,25 @@ void setupInterrupts();
 //! \param ch
 //! \param group
 //! \param priority
-void enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority);
+void configurePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority);
 
 //! Route a given Shared Peripheral Interrupt (SPI) to the given CPU and make sure it is not masked.
 //!
 //! See ARM IHI 0048B.b for more details
-//! \param ch
+//! \param interrupt_id
 //! \param target_cpu
 //! \param group
 //! \param priority
-void enableSharedPeripheralInterruptAndRouteToCpu(int ch,
-                                                  InterruptTrigger trigger,
-                                                  int target_cpu,
-                                                  InterruptGroup group,
-                                                  MonitorInterruptPriority priority);
+void configureSharedPeripheralInterruptAndRouteToCpu(int interrupt_id,
+                                                     InterruptTrigger trigger,
+                                                     int target_cpu,
+                                                     InterruptGroup group,
+                                                     MonitorInterruptPriority priority);
 
+//! Enable an interrupt (of any type)
+//!
+//! \param interrupt_id
+void enableInterrupt(int interrupt_id);
 
 
 }

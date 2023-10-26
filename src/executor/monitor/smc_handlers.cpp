@@ -97,18 +97,20 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
             if (interruptId >= 16 && interruptId < 32)
             {
                 // PPI
-                platform::enablePrivatePeripheralInterrupt(interruptId,
-                                                           platform::InterruptGroup::group1_irq_el1,
-                                                           (platform::MonitorInterruptPriority) requestedPriority);
+                platform::configurePrivatePeripheralInterrupt(interruptId,
+                                                              platform::InterruptGroup::group1_irq_el1,
+                                                              (platform::MonitorInterruptPriority) requestedPriority);
+                platform::enableInterrupt(interruptId);
             }
             else if (interruptId >= 32)
             {
                 // SPI
-                platform::enableSharedPeripheralInterruptAndRouteToCpu(interruptId,
-                                                                       platform::InterruptTrigger::edge,
-                                                                       internal::getCpuIndex(),
-                                                                       platform::InterruptGroup::group1_irq_el1,
-                                                                        (platform::MonitorInterruptPriority) requestedPriority);
+                platform::configureSharedPeripheralInterruptAndRouteToCpu(interruptId,
+                                                                          platform::InterruptTrigger::edge,
+                                                                          internal::getCpuIndex(),
+                                                                          platform::InterruptGroup::group1_irq_el1,
+                                                                          (platform::MonitorInterruptPriority) requestedPriority);
+                platform::enableInterrupt(interruptId);
             }
 
             break;

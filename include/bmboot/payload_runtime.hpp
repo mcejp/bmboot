@@ -59,7 +59,7 @@ void stopPeriodicInterrupt();
 //! @param interruptId Platform-specific interrupt ID
 //! @param priority Interrupt priority. A high-priority interrupt may preempt a low priority one.
 //! @param handler Callback function
-void configureAndEnableInterrupt(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler);
+void configureAndEnableInterrupt(int interrupt_id, PayloadInterruptPriority priority, InterruptHandler handler);
 
 //! Write to the standard output.
 //!

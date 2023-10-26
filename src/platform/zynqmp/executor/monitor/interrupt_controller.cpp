@@ -76,6 +76,10 @@ static void enableCpuInterrupts() {
                       XSCUGIC_CNTR_EN_NS_MASK |
                       XSCUGIC_CNTR_EN_S_MASK));
 
+    // Enable FIQ & IRQ.
+    // By design, in the monitor we only receive FIQ, but since all IRQ handler code is already in place, just in case
+    // we mess up and get one, we might as well report it, instead of falling into some kind of stub handler.
+
     // very misleading -- these are in fact *mask* bits, not *enable* bits
     mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE & ~XREG_CPSR_FIQ_ENABLE);
 }
@@ -123,7 +127,7 @@ static void setGroupForInterruptChannel(int int_id, InterruptGroup group)
     }
 }
 
-void bmboot::platform::enablePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority) {
+void bmboot::platform::configurePrivatePeripheralInterrupt(int ch, InterruptGroup group, MonitorInterruptPriority priority) {
     // TODO: should maybe just use Xilinx SDK functions
 
     setGroupForInterruptChannel(ch, group);
@@ -134,22 +138,15 @@ void bmboot::platform::enablePrivatePeripheralInterrupt(int ch, InterruptGroup g
     auto shift = (ch % 4) * 8;
     auto mask = 0xff << shift;
     write32(reg, (read32(reg) & ~mask) | ((int)priority << shift));
-
-    // TODO: should clear interrupt pending flag, just for a good measure?
-
-    const auto gic_dist_ISENABLERn = 0xF9010100;
-    reg = gic_dist_ISENABLERn;
-    mask = (1 << ch);
-    write32(reg, mask);
 }
 
 // ************************************************************
 
-void bmboot::platform::enableSharedPeripheralInterruptAndRouteToCpu(int ch,
-                                                                InterruptTrigger trigger,
-                                                                int target_cpu,
-                                                                InterruptGroup group,
-                                                                MonitorInterruptPriority priority) {
+void bmboot::platform::configureSharedPeripheralInterruptAndRouteToCpu(int ch,
+                                                                       InterruptTrigger trigger,
+                                                                       int target_cpu,
+                                                                       InterruptGroup group,
+                                                                       MonitorInterruptPriority priority) {
     // TODO: should maybe just use Xilinx SDK functions
 
     setGroupForInterruptChannel(ch, group);
@@ -181,25 +178,29 @@ void bmboot::platform::enableSharedPeripheralInterruptAndRouteToCpu(int ch,
     {
         write32(reg, (read32(reg) & ~mask) | (0b10 << shift));
     }
+}
 
+// ************************************************************
+
+void bmboot::platform::enableInterrupt(int interrupt_id)
+{
     // Clear pending and active statuses.
     // We don't know what happened in the past, a previous payload might have been terminated during the handling this
     // interrupt, in which case the interrupt would remain in an Active state in the GIC.
 
     const auto gic_dist_ICPENDRn = 0xF9010280;
-    reg = gic_dist_ICPENDRn + ch / 32 * 4;
-    mask = (1 << (ch % 32));
+    auto reg = gic_dist_ICPENDRn + interrupt_id / 32 * 4;
+    auto mask = (1 << (interrupt_id % 32));
     write32(reg, mask);
 
     const auto gic_dist_ICACTIVERn = 0xF9010380;
-    reg = gic_dist_ICACTIVERn + ch / 32 * 4;
-    mask = (1 << (ch % 32));
+    reg = gic_dist_ICACTIVERn + interrupt_id / 32 * 4;
+    mask = (1 << (interrupt_id % 32));
     write32(reg, mask);
 
-    // This does not seem necessary, the bit reads as 1 anyway -- at least for the IPI (SPI #67)... curious
     const auto gic_dist_ISENABLERn = 0xF9010100;
-    reg = gic_dist_ISENABLERn + ch / 32 * 4;
-    mask = (1 << (ch % 32));
+    reg = gic_dist_ISENABLERn + interrupt_id / 32 * 4;
+    mask = (1 << (interrupt_id % 32));
     write32(reg, mask);
 }
 
@@ -227,17 +228,19 @@ void bmboot::platform::teardownEl1Interrupts()
 
 void bmboot::platform::setupInterrupts()
 {
-    // FIXME: there is no need to enable IRQs as we always route those to EL1.
     enableCpuInterrupts();
 
     // Enable IPI reception
-    auto my_ipi_channel = getIpiChannelForCpu(getCpuIndex());
+    const auto my_ipi_channel = getIpiChannelForCpu(getCpuIndex());
+    const auto ipi_interrupt_id = getInterruptIdForIpi(my_ipi_channel);
 
-    platform::enableSharedPeripheralInterruptAndRouteToCpu(getInterruptIdForIpi(my_ipi_channel),
-                                                           platform::InterruptTrigger::unchanged,
-                                                           getCpuIndex(),
-                                                           platform::InterruptGroup::group0_fiq_el3,
-                                                           platform::MonitorInterruptPriority::m7_max);
+    platform::configureSharedPeripheralInterruptAndRouteToCpu(ipi_interrupt_id,
+                                                              platform::InterruptTrigger::unchanged,
+                                                              getCpuIndex(),
+                                                              platform::InterruptGroup::group0_fiq_el3,
+                                                              platform::MonitorInterruptPriority::m7_max);
+
+    platform::enableInterrupt(ipi_interrupt_id);
 
     enableIpiReception(IPI_SRC_BMBOOT_MANAGER, my_ipi_channel);
 }
