@@ -50,17 +50,6 @@ int bmboot::mach::getInterruptIdForIpi(IpiChannel ipi_channel)
 
 // ************************************************************
 
-void bmboot::platform::disablePrivatePeripheralInterrupt(int ch) {
-    // TODO: should maybe just use Xilinx SDK functions
-
-    const auto gic_dist_ICENABLERn = 0xF9010180;
-    auto reg = gic_dist_ICENABLERn;
-    auto mask = (1 << ch);
-    write32(reg, mask);
-}
-
-// ************************************************************
-
 static void enableCpuInterrupts() {
     // Upper 4 bits of priority value determine priority for preemption purposes
     XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_BIN_PT_OFFSET, 0x03);
@@ -182,6 +171,16 @@ void bmboot::platform::configureSharedPeripheralInterruptAndRouteToCpu(int ch,
 
 // ************************************************************
 
+void bmboot::platform::disableInterrupt(int interrupt_id)
+{
+    const auto gic_dist_ICENABLERn = 0xF9010180;
+    auto reg = gic_dist_ICENABLERn + interrupt_id / 32 * 4;
+    auto mask = (1 << (interrupt_id % 32));
+    write32(reg, mask);
+}
+
+// ************************************************************
+
 void bmboot::platform::enableInterrupt(int interrupt_id)
 {
     // Clear pending and active statuses.
@@ -208,16 +207,13 @@ void bmboot::platform::enableInterrupt(int interrupt_id)
 
 void bmboot::platform::teardownEl1Interrupts()
 {
-    platform::disablePrivatePeripheralInterrupt(mach::CNTPNS_IRQ_CHANNEL);
+    platform::disableInterrupt(mach::CNTPNS_IRQ_CHANNEL);
 
     for (int int_id = GIC_MIN_USER_INTERRUPT_ID; int_id <= GIC_MAX_USER_INTERRUPT_ID; int_id++)
     {
         if (interrupt_routed_to_el1[int_id - GIC_MIN_USER_INTERRUPT_ID])
         {
-            const auto gic_dist_ICENABLERn = 0xF9010180;
-            auto reg = gic_dist_ICENABLERn + int_id / 32 * 4;
-            auto mask = (1 << (int_id % 32));
-            write32(reg, mask);
+            disableInterrupt(int_id);
 
             interrupt_routed_to_el1[int_id - GIC_MIN_USER_INTERRUPT_ID] = false;
         }

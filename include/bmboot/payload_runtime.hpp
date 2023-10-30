@@ -69,6 +69,11 @@ void setupInterruptHandling(int interrupt_id, PayloadInterruptPriority priority,
 //! @param interruptId Platform-specific interrupt ID
 void enableInterruptHandling(int interruptId);
 
+//! Disable the reception of a peripheral interrupt.
+//!
+//! @param interruptId Platform-specific interrupt ID
+void disableInterruptHandling(int interruptId);
+
 //! Write to the standard output.
 //!
 //! @param data Data to write (normally in ASCII encoding)

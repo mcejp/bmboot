@@ -50,7 +50,6 @@ void teardownEl1Interrupts();
 
 void sendIpiMessage(std::span<const std::byte> message);
 
-void disablePrivatePeripheralInterrupt(int ch);
 //void enableCpuInterrupts();
 void setupInterrupts();
 
@@ -79,6 +78,11 @@ void configureSharedPeripheralInterruptAndRouteToCpu(int interrupt_id,
 //!
 //! \param interrupt_id
 void enableInterrupt(int interrupt_id);
+
+//! Disable an interrupt (of any type)
+//!
+//! \param interrupt_id
+void disableInterrupt(int interrupt_id);
 
 
 }

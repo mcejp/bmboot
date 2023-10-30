@@ -20,6 +20,11 @@ static InterruptHandler timer_irq_handler;
 
 InterruptHandler internal::user_interrupt_handlers[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
 
+void bmboot::disableInterruptHandling(int interruptId)
+{
+    smc(SMC_ZYNQMP_GIC_IRQ_DISABLE, interruptId);
+}
+
 void bmboot::enableInterruptHandling(int interruptId)
 {
     smc(SMC_ZYNQMP_GIC_IRQ_ENABLE, interruptId);
@@ -59,8 +64,9 @@ void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
 
 void bmboot::stopPeriodicInterrupt()
 {
-    // TOOD: disable IRQ etc.
     mtcp(CNTP_CTL_EL0, 0);
+
+    disableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
 }
 
 void internal::handleTimerIrq()

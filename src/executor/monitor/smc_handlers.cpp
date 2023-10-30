@@ -114,6 +114,13 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
             break;
         }
 
+        case SMC_ZYNQMP_GIC_IRQ_DISABLE: {
+            int interruptId = saved_regs.regs[1];
+
+            platform::disableInterrupt(interruptId);
+            break;
+        }
+
         case SMC_ZYNQMP_GIC_IRQ_ENABLE: {
             int interruptId = saved_regs.regs[1];
 
