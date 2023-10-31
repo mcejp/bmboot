@@ -2,7 +2,7 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
-## From 0.1 to Unreleased
+## From 0.1 to 0.2
 
 - The function `configureAndEnableInterrupt` has been removed.
   The same effect can be achieved by a call to `setupInterruptHandling` followed by `enableInterruptHandling`.
