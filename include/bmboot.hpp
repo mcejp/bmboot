@@ -53,6 +53,9 @@ enum ErrorCode
 //! Parse a domain index from its string representation
 std::optional<DomainIndex> parseDomainIndex(std::string_view const& str);
 
+//! Convert a domain index into its string representation
+std::string toString(DomainIndex index);
+
 //! Convert a domain state into its string representation
 std::string toString(bmboot::DomainState state);
 

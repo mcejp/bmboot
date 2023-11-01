@@ -30,6 +30,19 @@ std::optional<DomainIndex> bmboot::parseDomainIndex(std::string_view const& str)
 
 // ************************************************************
 
+std::string bmboot::toString(DomainIndex index)
+{
+    switch (index)
+    {
+        case DomainIndex::cpu1: return "cpu1";
+        case DomainIndex::cpu2: return "cpu2";
+        case DomainIndex::cpu3: return "cpu3";
+        default:                return "invalid";
+    }
+}
+
+// ************************************************************
+
 std::string bmboot::toString(DomainState state) {
     switch (state) {
         case DomainState::in_reset: return "in_reset";
