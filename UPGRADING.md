@@ -2,6 +2,10 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
+## From 0.2
+
+- The FGC4 memory map has been adjusted. This should normally not affect the user, but requires all code to be rebuilt.
+
 ## From 0.1 to 0.2
 
 - The function `configureAndEnableInterrupt` has been removed.
