@@ -2,7 +2,7 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
-## From 0.2
+## From 0.2 to 0.3
 
 - The FGC4 memory map has been adjusted. This should normally not affect the user, but requires all code to be rebuilt.
 - The payload runtime function `startPeriodicInterrupt(period, handler)` has been split into
