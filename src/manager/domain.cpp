@@ -69,6 +69,7 @@ public:
     MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32) final;
     int getchar() final;
     CrashInfo getCrashInfo() final;
+    DomainIndex getIndex() const final { return m_domain; }
     DomainState getState() final;
     MaybeError terminatePayload() final;
     MaybeError startup() final;

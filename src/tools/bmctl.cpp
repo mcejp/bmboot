@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 
         // console
 
-        displayOutputContinuously(*domain);
+        runConsoleUntilInterrupted(*domain);
 
         // terminate
 

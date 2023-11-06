@@ -12,23 +12,25 @@ using namespace bmboot;
 using namespace std::chrono_literals;
 using std::chrono::milliseconds;
 
-static std::atomic<bool> console_interrupted;
+static std::atomic_bool console_interrupted[DomainIndex::max_domain];
 
-void bmboot::displayOutputContinuously(IDomain& domain)
+static std::thread console_threads[DomainIndex::max_domain];
+
+/*
+ * Console works like this:
+ *
+ * - it always runs on a thread
+ * - in stand-alone mode we just instantiate it for 1 domain (so it's the user's responisbility that it has been initialized etc.)
+ * - when embedded as library, you spawn a thread per each domain spun up, and then it's up to you to tear 'em down
+ */
+
+static void runConsole(IDomain& domain)
 {
-    console_interrupted = false;
-
-    struct sigaction sa;
-    sa.sa_handler = [](int signal) { console_interrupted = true; };
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, nullptr);
-
     auto start = std::chrono::system_clock::now();
 
     std::stringstream stdout_accum;
 
-    while (!console_interrupted)
+    while (!console_interrupted[domain.getIndex()])
     {
         int c = domain.getchar();
 
@@ -52,6 +54,26 @@ void bmboot::displayOutputContinuously(IDomain& domain)
     }
 }
 
+void bmboot::runConsoleUntilInterrupted(IDomain& domain)
+{
+    console_interrupted[domain.getIndex()] = false;
+
+    struct sigaction sa;
+    sa.sa_handler = [](int signal)
+    {
+        for (auto& stop : console_interrupted)
+        {
+            stop = true;
+        }
+    };
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, nullptr);
+
+    startConsoleThread(domain);
+    console_threads[domain.getIndex()].join();
+}
+
 void bmboot::loadPayloadFromFileOrThrow(IDomain& domain, std::filesystem::path const& path)
 {
     std::ifstream file(path, std::ios::binary);
@@ -67,6 +89,16 @@ void bmboot::loadPayloadFromFileOrThrow(IDomain& domain, std::filesystem::path c
     auto crc = crc32(0, program.data(), program.size());
 
     throwOnError(domain.loadAndStartPayload(program, crc), "loadAndStartPayload");
+}
+
+void bmboot::startConsoleThread(IDomain& domain)
+{
+    auto& thread = console_threads[domain.getIndex()];
+
+    if (!thread.joinable())
+    {
+        thread = std::thread(runConsole, std::ref(domain));
+    }
 }
 
 std::unique_ptr<IDomain> bmboot::throwOnError(DomainInstanceOrErrorCode maybe_domain, const char* function_name)

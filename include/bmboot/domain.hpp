@@ -37,13 +37,16 @@ public:
     //! @return
     static DomainInstanceOrErrorCode open(DomainIndex index);
 
-    virtual ~IDomain() {}
+    virtual ~IDomain() = default;
 
     //! Start the bmboot monitor in this domain.
     //! The monitor must be running before a user payload can be executed.
     //!
     //! This operation is permissible only when the domain state is @link bmboot::in_reset in_reset@endlink.
     virtual MaybeError startup() = 0;
+
+    //! Get domain index
+    virtual DomainIndex getIndex() const = 0;
 
     //! Query current state of the domain
     virtual DomainState getState() = 0;

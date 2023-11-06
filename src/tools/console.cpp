@@ -54,5 +54,5 @@ int main(int argc, char** argv)
         domain->startDummyPayload();
     }
 
-    displayOutputContinuously(*domain);
+    runConsoleUntilInterrupted(*domain);
 }
