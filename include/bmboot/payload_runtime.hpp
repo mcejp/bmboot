@@ -45,11 +45,17 @@ void notifyPayloadCrashed(const char* desc, uintptr_t address);
 //! Notify the manager that the payload has started successfully.
 void notifyPayloadStarted();
 
-//! Start a periodic interrupt.
+//! Configure the built-in periodic interrupt.
 //!
 //! \param period_us Interrupt period in microseconds
 //! \param handler Funcion to be called
-void startPeriodicInterrupt(int period_us, InterruptHandler handler);
+void setupPeriodicInterrupt(int period_us, InterruptHandler handler);
+
+//! Start the built-in periodic interrupt.
+//!
+//! @link bmboot::setupPeriodicInterrupt @endlink must be called first to configure the interrupt handler and period.
+//! Otherwise, the call will fail.
+void startPeriodicInterrupt();
 
 //! Stop the periodic interrupt, if it is running.
 void stopPeriodicInterrupt();

@@ -291,12 +291,7 @@ else()
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_manager)
 
-    add_executable(timer_demo
-            src/tools/timer_demo.cpp
-            )
-    target_link_libraries(timer_demo PUBLIC bmboot_manager)
-
-    foreach(TOOL bmctl console timer_demo)
+    foreach(TOOL bmctl console)
         # Make sure bmctl is linked fully statically
         # TODO: the clean solution would be to use a toolchain that matches the target OS
         target_link_options(${TOOL} PRIVATE -static -static-libgcc -static-libstdc++)

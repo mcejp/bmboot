@@ -8,7 +8,8 @@ int main(int argc, char** argv)
 
     printf("hello from payload\n");
 
-    bmboot::startPeriodicInterrupt(1'000'000, myHandler);
+    bmboot::setupPeriodicInterrupt(1'000'000, myHandler);
+    bmboot::startPeriodicInterrupt();
 
     for (;;) {}
 }

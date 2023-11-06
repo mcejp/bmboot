@@ -43,7 +43,7 @@ void bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority pr
     smc(SMC_ZYNQMP_GIC_IRQ_CONFIGURE, interruptId, (int) priority);
 }
 
-void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
+void bmboot::setupPeriodicInterrupt(int period_us, InterruptHandler handler)
 {
     // ticks = duration_us * timer_freq_Hz / 1e6
     timer_period_ticks = (uint64_t) period_us * mfcp(CNTFRQ_EL0) / 1'000'000;
@@ -55,6 +55,10 @@ void bmboot::startPeriodicInterrupt(int period_us, InterruptHandler handler)
     setupInterruptHandling(mach::CNTPNS_IRQ_CHANNEL,
                            PayloadInterruptPriority::p7_max,
                            handleTimerIrq);
+}
+
+void bmboot::startPeriodicInterrupt()
+{
     enableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
 
     // configure timer & start it
