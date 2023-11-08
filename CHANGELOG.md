@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- User of the Manager API can provide an argument to be passed to the payload
+
 ### Changed
 
 - Console output now includes CPU number and time is indicated in seconds

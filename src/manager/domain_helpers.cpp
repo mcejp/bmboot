@@ -93,7 +93,7 @@ void bmboot::loadPayloadFromFileOrThrow(IDomain& domain, std::filesystem::path c
 
     auto crc = crc32(0, program.data(), program.size());
 
-    throwOnError(domain.loadAndStartPayload(program, crc), "loadAndStartPayload");
+    throwOnError(domain.loadAndStartPayload(program, crc, 123), "loadAndStartPayload");
 }
 
 void bmboot::startConsoleThread(IDomain& domain)

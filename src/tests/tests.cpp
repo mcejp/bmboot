@@ -107,7 +107,8 @@ struct BmbootFixture : public ::testing::Test
         std::vector<uint8_t> program((std::istreambuf_iterator<char>(file)),
                                      std::istreambuf_iterator<char>());
 
-        throw_for_err(domain->loadAndStartPayload(program, crc32(0, program.data(), program.size())));
+        auto crc = crc32(0, program.data(), program.size());
+        throw_for_err(domain->loadAndStartPayload(program, crc, 0));
     }
 
     std::unique_ptr<IDomain> domain;

@@ -100,6 +100,11 @@ int bmboot::getCpuIndex()
     return internal::getCpuIndex();
 }
 
+uintptr_t bmboot::getPayloadArgument()
+{
+    return getIpcBlock().manager_to_executor.payload_argument;
+}
+
 void bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address)
 {
     smc(SMC_NOTIFY_PAYLOAD_CRASHED, desc, address);

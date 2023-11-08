@@ -2,6 +2,11 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
+## From 0.3
+
+- `Domain::loadAndStartPayload` now requires and additional argument, which can be retrieved by the payload.
+  If this functionality is not being used, an arbitrary value can be provided.
+
 ## From 0.2 to 0.3
 
 - The FGC4 memory map has been adjusted. This should normally not affect the user, but requires all code to be rebuilt.

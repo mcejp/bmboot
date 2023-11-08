@@ -66,7 +66,9 @@ public:
     MaybeError dumpCore(char const* filename) final;
     void dumpDebugInfo() final;
     MaybeError ensureReadyToLoadPayload() final;
-    MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32) final;
+    MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary,
+                                   uint32_t payload_crc32,
+                                   uintptr_t payload_argument) final;
     int getchar() final;
     CrashInfo getCrashInfo() final;
     DomainIndex getIndex() const final { return m_domain; }
@@ -77,13 +79,16 @@ public:
     void startDummyPayload() final
     {
         // we _know_ that this will time out, don't bother checking the result
-        startPayloadAt(0xbaadf00d, 0, 0);
+        startPayloadAt(0xbaadf00d, 0, 0, 0);
     }
 
 private:
     MaybeError awaitMonitorStartup();
     PhysicalMemoryRanges const& getPhysicalMemoryRanges() { return ::getPhysicalMemoryRanges(m_domain); }
-    MaybeError startPayloadAt(uintptr_t entry_address, size_t payload_size, uint32_t payload_crc32);
+    MaybeError startPayloadAt(uintptr_t entry_address,
+                              size_t payload_size,
+                              uint32_t payload_crc32,
+                              uintptr_t payload_argument);
     MaybeError startup(std::span<uint8_t const> monitor_binary);
 
 //    volatile IpcBlock& getIpcBlock()
@@ -370,7 +375,9 @@ int Domain::getchar()
 
 // ************************************************************
 
-MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32)
+MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary,
+                                       uint32_t payload_crc32,
+                                       uintptr_t payload_argument)
 {
     // First, ensure we are in 'ready' state
     if (getState() != DomainState::monitor_ready)
@@ -392,7 +399,10 @@ MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary, 
         return error;
     }
 
-    return startPayloadAt(ranges.payload_address, payload_binary.size(), payload_crc32);
+    return startPayloadAt(ranges.payload_address,
+                          payload_binary.size(),
+                          payload_crc32,
+                          payload_argument);
 }
 
 // ************************************************************
@@ -469,7 +479,10 @@ DomainInstanceOrErrorCode IDomain::open(DomainIndex domain)
 
 // ************************************************************
 
-MaybeError Domain::startPayloadAt(uintptr_t entry_address, size_t payload_size, uint32_t payload_crc32)
+MaybeError Domain::startPayloadAt(uintptr_t entry_address,
+                                  size_t payload_size,
+                                  uint32_t payload_crc32,
+                                  uintptr_t payload_argument)
 {
     // First, ensure we are in 'ready' state
     if (getState() != DomainState::monitor_ready)
@@ -491,6 +504,7 @@ MaybeError Domain::startPayloadAt(uintptr_t entry_address, size_t payload_size, 
     outbox.payload_entry_address = entry_address;
     outbox.payload_size = payload_size;
     outbox.payload_crc = payload_crc32;
+    outbox.payload_argument = payload_argument;
     outbox.cmd = Command::start_payload;
     memory_write_reorder_barrier();
     outbox.cmd_seq = (outbox.cmd_seq + 1);

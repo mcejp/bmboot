@@ -10,20 +10,39 @@ Related terminology:
 
 Header: :src_file:`include/bmboot/payload_runtime.hpp`
 
-.. doxygenfunction:: bmboot::configureAndEnableInterrupt
+Periodic interrupt (private timer)
+==================================
 
-.. doxygenfunction:: bmboot::getCpuIndex
-
-.. doxygenfunction:: bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address)
-
-.. doxygenfunction:: bmboot::notifyPayloadStarted()
+.. doxygenfunction:: bmboot::setupPeriodicInterrupt
 
 .. doxygenfunction:: bmboot::startPeriodicInterrupt
 
 .. doxygenfunction:: bmboot::stopPeriodicInterrupt
 
-.. doxygenfunction:: bmboot::writeToStdout(void const* data, size_t size)
+
+Other interrupts
+================
+
+.. doxygenfunction:: bmboot::disableInterruptHandling
+
+.. doxygenfunction:: bmboot::enableInterruptHandling
+
+.. doxygenfunction:: bmboot::setupInterruptHandling
 
 .. doxygentypedef:: bmboot::InterruptHandler
 
 .. doxygenenum:: bmboot::PayloadInterruptPriority
+
+
+Miscellaneous
+=============
+
+.. doxygenfunction:: bmboot::getCpuIndex
+
+.. doxygenfunction:: bmboot::getPayloadArgument
+
+.. doxygenfunction:: bmboot::notifyPayloadCrashed(const char* desc, uintptr_t address)
+
+.. doxygenfunction:: bmboot::notifyPayloadStarted()
+
+.. doxygenfunction:: bmboot::writeToStdout(void const* data, size_t size)

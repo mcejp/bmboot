@@ -30,6 +30,11 @@ enum class PayloadInterruptPriority
 //! Callback function for the periodic interrupt
 using InterruptHandler = std::function<void()>;
 
+//! Retrieve the argument provided when calling bmboot::IDomain::loadAndStartPayload
+//!
+//! \return Argument value
+uintptr_t getPayloadArgument();
+
 //! Get the CPU core on which the program is executing
 //!
 //! \return CPU core number, counted from 0

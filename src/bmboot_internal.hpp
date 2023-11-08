@@ -47,9 +47,6 @@ enum Response
     crc_mismatched,
 };
 
-// TODO: add assertions for sizeof(IpcBlock) vs mmap sizes
-// TODO: instead of mst_ and dom_ prefixes, use sub-structures
-//
 // zeroed in bmboot::startup_domain
 struct IpcBlock
 {
@@ -61,6 +58,7 @@ struct IpcBlock
         uintptr_t payload_entry_address;
         size_t payload_size;
         uint32_t payload_crc;
+        uintptr_t payload_argument;
 
         size_t stdout_rdpos;
     }

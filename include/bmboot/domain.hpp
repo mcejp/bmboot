@@ -64,7 +64,14 @@ public:
     //! Load and execute the given payload.
     //!
     //! This operation is permissible only when the domain state is @link bmboot::monitor_ready monitor_ready@endlink.
-    virtual MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary, uint32_t payload_crc32) = 0;
+    //!
+    //! \param payload_binary
+    //! \param payload_crc32
+    //! \param payload_argument The value of this argument is simply passed to the payload (see bmboot::getPayloadArgument)
+    //! \return
+    virtual MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary,
+                                           uint32_t payload_crc32,
+                                           uintptr_t payload_argument) = 0;
 
     //! Read a character from the executor's standard output. This function should be polled on a regular basis.
     //!
