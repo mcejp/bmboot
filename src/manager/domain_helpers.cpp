@@ -26,6 +26,8 @@ static std::thread console_threads[DomainIndex::max_domain];
 
 static void runConsole(IDomain& domain)
 {
+    auto domain_name = toString(domain.getIndex());
+
     auto start = std::chrono::system_clock::now();
 
     std::stringstream stdout_accum;
@@ -39,7 +41,10 @@ static void runConsole(IDomain& domain)
             if (c == '\n')
             {
                 auto now = std::chrono::system_clock::now();
-                printf("[%6ld] %s\n", duration_cast<milliseconds>((now - start)).count(), stdout_accum.str().c_str());
+                printf("[%s %7.3f] %s\n",
+                       domain_name.c_str(),
+                       duration_cast<std::chrono::duration<float>>((now - start)).count(),
+                       stdout_accum.str().c_str());
                 std::stringstream().swap(stdout_accum);         // https://stackoverflow.com/a/23266418
             }
             else

@@ -432,31 +432,34 @@ DomainInstanceOrErrorCode IDomain::open(DomainIndex domain)
     // It is not obvious how to determine whether the bmboot monitor is running on a given CPU core
     // We solve this by placing a special value -- a *cookie* at a fixed memory location when starting the monitor.
     // If this value is found there, we assume the monitor has been started up previously.
+    //
+    // It is not without corner cases -- what if the CPU has been reset without clearing the DDR RAM?
+    // So we check for core reset bit first, cookie second
 
-    // Look for cookie in the specified location
-    Cookie cookie = -1;
-    memcpy(&cookie, code_area + ranges.monitor_size - sizeof(cookie), sizeof(cookie));
-
-    if (cookie != MONITOR_CODE_COOKIE)
+    if (mach::isCoreInReset(std::get<int>(devmem), domain))
     {
-        if (mach::isCoreInReset(std::get<int>(devmem), domain))
-        {
-            domain_general_state[domain] = DomainGeneralState::inReset;
-        }
-        else
-        {
-            // Core has been started, but not by us...
-            domain_general_state[domain] = DomainGeneralState::unavailable;
-        }
+        domain_general_state[domain] = DomainGeneralState::inReset;
     }
     else
     {
-        // Cookie found -> assume bmboot running (potentially with user payload)
-        //
-        // This can give a false positive if the startup failed or if the monitor crashed... tough luck.
-        // A reboot is probably the only way out in that case, anyway.
+        // Look for cookie in the specified location
+        Cookie cookie = -1;
+        memcpy(&cookie, code_area + ranges.monitor_size - sizeof(cookie), sizeof(cookie));
 
-        domain_general_state[domain] = DomainGeneralState::monitorStarted;
+        if (cookie == MONITOR_CODE_COOKIE)
+        {
+            // Cookie found -> assume bmboot running (potentially with user payload)
+            //
+            // This can give a false positive if the startup failed or if the monitor crashed... tough luck.
+            // A reboot is probably the only way out in that case, anyway.
+
+            domain_general_state[domain] = DomainGeneralState::monitorStarted;
+        }
+        else
+        {
+            // Core is running... but not our code!
+            domain_general_state[domain] = DomainGeneralState::unavailable;
+        }
     }
 
     munmap(code_area, ranges.monitor_size);
