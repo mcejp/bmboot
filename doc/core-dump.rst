@@ -45,7 +45,7 @@ library, but all portability is thrown out, so the code is Aarch64-specific.
 How to extract & process the dump
 ---------------------------------
 
-After a payload has crashed, the core dump must be extracted manually using the command ``bmctl core``.
+After a payload has crashed, the core dump must be extracted manually using the :doc:`bmctl <cli>` utility.
 This will produce a file called ``core`` which can be evacuated using scp.
 It is also necessary to have the original ELF file of the payload. The core dump currently does not contain any version
 information or hash of the executable. (see :need:`[[id]] <Q_CORE_ID>`)
