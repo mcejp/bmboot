@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - User of the Manager API can provide an argument to be passed to the payload
+- Message Queues to communicate between Linux and bare metal
 
 ### Changed
 

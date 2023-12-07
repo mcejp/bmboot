@@ -35,6 +35,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
             src/executor/payload/syscalls.h
             src/platform/zynqmp/executor/asm_vectors.S
             src/platform/zynqmp/executor/payload/vectors_el1.cpp
+            src/utility/message_queue.cpp
             )
 
     target_compile_features(${TARGET} PUBLIC cxx_std_20)
@@ -179,7 +180,7 @@ elseif (BUILD_MONITOR)
 
     add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
 
-    foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo)
+    foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo message_queue)
         add_bmboot_payload(payload_${PAYLOAD} src/payloads/${PAYLOAD}.cpp)
     endforeach()
 
@@ -253,6 +254,7 @@ else()
             src/manager/domain_helpers.cpp
             src/platform/zynqmp/manager/zynqmp_manager.cpp
             src/utility/crc32.c
+            src/utility/message_queue.cpp
             src/utility/to_string.cpp
 
             ${MONITOR_ZYNQMP_HPP_ALL}
@@ -291,8 +293,16 @@ else()
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_manager)
 
-    foreach(TOOL bmctl console)
+    add_executable(message_queue_demo
+            src/tools/message_queue_demo.cpp
+            )
+    target_link_libraries(message_queue_demo PUBLIC bmboot_manager)
+
+    foreach(TOOL bmctl console message_queue_demo)
         # Make sure bmctl is linked fully statically
+        # This is only a temporary workaround for the discrepancy between library versions expected by our compiler
+        # and available on the target OS (PetaLinux 2019).
+        # Can't do this for Bmtest because it uses pthread which *requires* dynamic linking. Or something like that.
         # TODO: the clean solution would be to use a toolchain that matches the target OS
         target_link_options(${TOOL} PRIVATE -static -static-libgcc -static-libstdc++)
     endforeach()
