@@ -5,11 +5,6 @@ if (BUILD_MONITOR OR BMBOOT_BUILD_PAYLOAD)
         message(FATAL_ERROR "You must provide CMAKE_SIZE option")
     endif()
 
-    set(CMAKE_SYSTEM_NAME Generic)
-    # SET(CMAKE_C_COMPILER_WORKS 1)
-    # SET(CMAKE_CXX_COMPILER_WORKS 1)
-    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
     add_compile_options(-O2 -Wall -mtune=cortex-a53 -ffunction-sections -fdata-sections)
     add_compile_definitions(_DIOT=1)
 
@@ -191,36 +186,11 @@ else()
 
     include(ExternalProject)
 
-    if(NOT DEFINED CMAKE_C_COMPILER_AARCH64_NONE_ELF)
-        message(FATAL_ERROR "CMAKE_C_COMPILER_AARCH64_NONE_ELF must be set")
-    endif()
-
-    if(NOT DEFINED CMAKE_CXX_COMPILER_AARCH64_NONE_ELF)
-        message(FATAL_ERROR "CMAKE_CXX_COMPILER_AARCH64_NONE_ELF must be set")
-    endif()
-
-    if(NOT DEFINED CMAKE_OBJCOPY_AARCH64_NONE_ELF)
-        message(FATAL_ERROR "CMAKE_OBJCOPY_AARCH64_NONE_ELF must be set")
-    endif()
-
-    if(NOT DEFINED CMAKE_OBJDUMP_AARCH64_NONE_ELF)
-        message(FATAL_ERROR "CMAKE_OBJDUMP_AARCH64_NONE_ELF must be set")
-    endif()
-
-    if(NOT DEFINED CMAKE_SIZE_AARCH64_NONE_ELF)
-        message(FATAL_ERROR "CMAKE_SIZE_AARCH64_NONE_ELF must be set")
-    endif()
-
     # add executor code as ExternalProject
     ExternalProject_Add(monitor_zynqmp
             SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
             CMAKE_ARGS
-                # TODO: can we do better than having to enumerate these one by one?
-                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER_AARCH64_NONE_ELF}
-                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER_AARCH64_NONE_ELF}
-                -DCMAKE_OBJCOPY=${CMAKE_OBJCOPY_AARCH64_NONE_ELF}
-                -DCMAKE_OBJDUMP=${CMAKE_OBJDUMP_AARCH64_NONE_ELF}
-                -DCMAKE_SIZE=${CMAKE_SIZE_AARCH64_NONE_ELF}
+                -DCMAKE_TOOLCHAIN_FILE=${CMAKE_CURRENT_LIST_DIR}/Aarch64BareMetal.cmake
                 -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo
                 -DBUILD_MONITOR=ON
