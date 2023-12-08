@@ -60,10 +60,8 @@ Voici un exemple:
 
     add_bmboot_payload(hello_world src/main.cpp)
 
-    foreach (TARGET ${hello_world_TARGETS})
-        target_compile_definitions(${TARGET} PRIVATE HELLO=world)
-        target_include_directories(${TARGET} PRIVATE include)
-    endforeach()
+    target_compile_definitions(hello_world PRIVATE HELLO=world)
+    target_include_directories(hello_world PRIVATE include)
 
 
 

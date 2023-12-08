@@ -6,6 +6,9 @@ This guide will list any breaking changes between versions. For a list of all ch
 
 - `Domain::loadAndStartPayload` now requires and additional argument, which can be retrieved by the payload.
   If this functionality is not being used, an arbitrary value can be provided.
+- The usage of the CMake function `add_bmboot_payload(my_payload ...)` has changed.
+  Instead of iterating over `my_payload_TARGETS`, compiler/linker options should now be attached to the target named
+  simply `my_payload`.
 
 ## From 0.2 to 0.3
 

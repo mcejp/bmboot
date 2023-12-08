@@ -105,40 +105,46 @@ elseif (BUILD_MONITOR)
         message(FATAL_ERROR "BMBOOT_BSP_EL3_LIBRARIES must be set")
     endif()
 
+    # Monitor target (common)
+
+    add_library(monitor_zynqmp OBJECT
+            include/bmboot.hpp
+            src/executor/executor.cpp
+            src/executor/executor_asm.S
+            src/executor/monitor/monitor_asm.S
+            src/executor/monitor/monitor.cpp
+            src/executor/monitor/smc_handlers.cpp
+            src/platform/zynqmp/executor/asm_vectors.S
+            src/platform/zynqmp/executor/monitor/interrupt_controller.cpp
+            src/platform/zynqmp/executor/monitor/vectors_el3.cpp
+            src/utility/crc32.c
+            )
+
+    target_include_directories(monitor_zynqmp PRIVATE
+            include
+            src
+            src/executor
+            src/executor/monitor
+            src/platform/zynqmp
+            src/platform/zynqmp/executor
+            src/platform/zynqmp/executor/monitor
+
+            ${BMBOOT_BSP_EL3_INCLUDE_DIR}
+            )
+    target_compile_features(monitor_zynqmp PUBLIC cxx_std_20)
+    target_link_libraries(monitor_zynqmp PRIVATE
+            m
+            ${BMBOOT_BSP_EL3_LIBRARIES}
+            )
+
+    # Instantiate monitor target for each CPU core
+
     foreach(CPU ${BMBOOT_ALL_CPUS})
         set(TARGET monitor_zynqmp_cpu${CPU})
 
-        add_executable(${TARGET}
-                include/bmboot.hpp
-                src/executor/executor.cpp
-                src/executor/executor_asm.S
-                src/executor/monitor/monitor_asm.S
-                src/executor/monitor/monitor.cpp
-                src/executor/monitor/smc_handlers.cpp
-                src/platform/zynqmp/executor/asm_vectors.S
-                src/platform/zynqmp/executor/monitor/interrupt_controller.cpp
-                src/platform/zynqmp/executor/monitor/vectors_el3.cpp
-                src/utility/crc32.c
-                )
+        add_executable("${TARGET}" $<TARGET_OBJECTS:monitor_zynqmp>)
+        target_link_libraries("${TARGET}" PRIVATE monitor_zynqmp)
 
-        # -----------------------------------------------------------------------------------------------------------
-
-        target_include_directories(${TARGET} PRIVATE
-                include
-                src
-                src/executor
-                src/executor/monitor
-                src/platform/zynqmp
-                src/platform/zynqmp/executor
-                src/platform/zynqmp/executor/monitor
-
-                ${BMBOOT_BSP_EL3_INCLUDE_DIR}
-                )
-        target_compile_features(${TARGET} PUBLIC cxx_std_20)
-        target_link_libraries(${TARGET} PRIVATE
-                m
-                ${BMBOOT_BSP_EL3_LIBRARIES}
-                )
         target_link_options(${TARGET} PRIVATE
                 -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/src/executor/monitor/monitor_cpu${CPU}.ld
                 )

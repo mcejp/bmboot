@@ -5,12 +5,18 @@ set(BMBOOT_ALL_CPUS 1 2 3)
 function(add_bmboot_payload NAME)
     set(ALL_TARGETS)
 
+    # Use an "object library" so that source files will be compiled only once
+    add_library("${NAME}" OBJECT ${ARGN})
+
+    target_link_libraries("${NAME}" PRIVATE bmboot_payload_runtime)
+
+    # link the payload separately for each CPU core
     foreach(CPU ${BMBOOT_ALL_CPUS})
         set(TARGET "${NAME}_cpu${CPU}")
-        add_executable("${TARGET}" ${ARGN})
+        add_executable("${TARGET}" $<TARGET_OBJECTS:${NAME}>)
+        target_link_libraries("${TARGET}" PRIVATE "${NAME}")
         set_target_properties("${TARGET}" PROPERTIES SUFFIX ".elf")
 
-        target_link_libraries("${TARGET}" PRIVATE bmboot_payload_runtime)
         target_link_options(${TARGET} PUBLIC
                 -Wl,-T,${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/executor/payload/payload_cpu${CPU}.ld)
 
