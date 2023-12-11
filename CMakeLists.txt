@@ -143,6 +143,8 @@ elseif (BUILD_MONITOR)
         set(TARGET monitor_zynqmp_cpu${CPU})
 
         add_executable("${TARGET}" $<TARGET_OBJECTS:monitor_zynqmp>)
+        # TODO: according to https://cmake.org/cmake/help/v3.4/manual/cmake-buildsystem.7.html#object-libraries,
+        #       we should not link against monitor_zynqmp. For the time being, it seems to work, anyway.
         target_link_libraries("${TARGET}" PRIVATE monitor_zynqmp)
 
         target_link_options(${TARGET} PRIVATE
