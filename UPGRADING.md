@@ -2,7 +2,7 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
-## From 0.3
+## From 0.3 to 0.4
 
 - `Domain::loadAndStartPayload` now requires and additional argument, which can be retrieved by the payload.
   If this functionality is not being used, an arbitrary value can be provided.
