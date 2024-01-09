@@ -16,6 +16,7 @@ static int usage()
 {
     fprintf(stderr, "usage: bmctl boot <domain>\n");
     fprintf(stderr, "usage: bmctl core <domain>\n");
+    fprintf(stderr, "usage: bmctl debuginfo <domain>\n");
     fprintf(stderr, "usage: bmctl run <domain> <payload>\n");
     fprintf(stderr, "usage: bmctl start <domain> <payload>\n");
     fprintf(stderr, "usage: bmctl status <domain>\n");
@@ -91,6 +92,10 @@ int main(int argc, char** argv)
             fprintf(stderr, "IDomain::dumpCore: error: %s\n", toString(*err).c_str());
             return -1;
         }
+    }
+    else if (strcmp(argv[1], "debuginfo") == 0)
+    {
+        domain->dumpDebugInfo();
     }
     else if (strcmp(argv[1], "run") == 0)
     {

@@ -363,7 +363,7 @@ int Domain::getchar()
 
     if (outbox.stdout_rdpos != inbox.stdout_wrpos)
     {
-        char c = inbox.stdout_buf[outbox.stdout_rdpos];
+        unsigned char c = inbox.stdout_buf[outbox.stdout_rdpos];
         outbox.stdout_rdpos = (outbox.stdout_rdpos + 1) % sizeof(inbox.stdout_buf);
         return c;
     }
