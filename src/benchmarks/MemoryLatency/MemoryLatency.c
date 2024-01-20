@@ -7,7 +7,11 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#ifndef __MINGW32__
+#ifdef __bmboot__
+#include "bmboot/payload_runtime.h"
+#endif
+
+#if !defined(__MINGW32__) && !defined(__bmboot__)
 #include <sys/mman.h>
 #endif
 
@@ -52,13 +56,19 @@ float RunTest(uint32_t size_kb, uint32_t iterations, uint32_t *preallocatedArr);
 float RunAsmTest(uint32_t size_kb, uint32_t iterations, uint32_t *preallocatedArr);
 float RunTlbTest(uint32_t size_kb, uint32_t iterations, uint32_t *preallocatedArr);
 float RunMlpTest(uint32_t size_kb, uint32_t iterations, uint32_t parallelism);
+#ifndef __bmboot__
 void RunStlfTest(uint32_t iterations, int mode);
+#endif
 
 float (*testFunc)(uint32_t, uint32_t, uint32_t *) = RunTest;
 
 uint32_t ITERATIONS = 100000000;
 
 int main(int argc, char* argv[]) {
+#ifdef __bmboot__
+    bmNotifyPayloadStarted();
+#endif
+
     uint32_t maxTestSizeMb = 0;
     uint32_t singleSize = 0;
     uint32_t testSizeCount = sizeof(default_test_sizes) / sizeof(int);
@@ -139,7 +149,12 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Usage: [-test <c/asm/tlb/mlp>] [-maxsizemb <max test size in MB>] [-iter <base iterations, default 100000000]\n");
     }
 
-#ifndef __MINGW32__
+#ifdef __bmboot__
+    testFunc = RunAsmTest;
+    fprintf(stderr, "Using ASM (simple address) test\n");
+#endif
+
+#if !defined(__MINGW32__) && !defined(__bmboot__)
     if (hugePages) {
        size_t hugePageSize = 1 << 21;
        size_t maxMemRequired = default_test_sizes[testSizeCount - 1] * 1024;
@@ -185,8 +200,10 @@ int main(int argc, char* argv[]) {
         }
 
         free(results);
+#ifndef __bmboot__
     } else if (stlf) {
         RunStlfTest(ITERATIONS, stlf);
+#endif
     } else {
         if (singleSize == 0) {
         printf("Region,Latency (ns)\n");
@@ -343,15 +360,28 @@ float RunMlpTest(uint32_t size_kb, uint32_t iterations, uint32_t parallelism) {
 
 #ifndef UNKNOWN_ARCH
 float RunAsmTest(uint32_t size_kb, uint32_t iterations, uint32_t *preallocatedArr) {
+#ifndef __bmboot__
     struct timeval startTv, endTv;
     struct timezone startTz, endTz;
+#else
+    uint64_t startCnt, endCnt;
+#endif
     uint32_t list_size = size_kb * 1024 / POINTER_SIZE; // using 32-bit pointers
     uint32_t sum = 0, current;
 
     // Fill list to create random access pattern
     POINTER_INT *A;
     if (preallocatedArr == NULL) {
-        A = (POINTER_INT *)malloc(POINTER_SIZE * list_size);
+#ifdef __bmboot__
+        if (POINTER_SIZE * list_size < 0x40000000) {
+            A = (POINTER_INT *) 0x807900000;
+        }
+        else {
+            A = NULL;
+        }
+#else
+        A = malloc(POINTER_SIZE * list_size);
+#endif
         if (!A) {
             fprintf(stderr, "Failed to allocate memory for %u KB test\n", size_kb);
             return 0;
@@ -373,12 +403,23 @@ float RunAsmTest(uint32_t size_kb, uint32_t iterations, uint32_t *preallocatedAr
     uint32_t scaled_iterations = scale_iterations(size_kb, iterations);
 
     // Run test
+#ifndef __bmboot__
     gettimeofday(&startTv, &startTz);
+#else
+    startCnt = bmGetBuiltinTimerValue();
+#endif
     sum = latencytest(scaled_iterations, A);
+#ifndef __bmboot__
     gettimeofday(&endTv, &endTz);
     uint64_t time_diff_ms = 1000 * (endTv.tv_sec - startTv.tv_sec) + ((endTv.tv_usec - startTv.tv_usec) / 1000);
+#else
+    endCnt = bmGetBuiltinTimerValue();
+    uint64_t time_diff_ms = (endCnt - startCnt)  / (bmGetBuiltinTimerFrequency() / 1000);
+#endif
     float latency = 1e6 * (float)time_diff_ms / (float)scaled_iterations;
+#ifndef __bmboot__
     if (preallocatedArr == NULL) free(A);
+#endif
 
     if (sum == 0) printf("sum == 0 (?)\n");
     return latency;
@@ -470,6 +511,7 @@ float RunTlbTest(uint32_t size_kb, uint32_t iterations, uint32_t *preallocatedAr
     return latency - cacheLatency;
 }
 
+#ifndef __bmboot__
 // Run store to load forwarding test, as described in https://blog.stuffedcow.net/2014/01/x86-memory-disambiguation/
 // uses 4B loads and 8B stores to see when/if store forwarding can succeed when sizes are not matched
 void RunStlfTest(uint32_t iterations, int mode) {
@@ -524,3 +566,4 @@ void RunStlfTest(uint32_t iterations, int mode) {
 #endif
     return;
 }
+#endif

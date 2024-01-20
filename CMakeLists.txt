@@ -188,6 +188,8 @@ elseif (BUILD_MONITOR)
         add_bmboot_payload(payload_${PAYLOAD} src/payloads/${PAYLOAD}.cpp)
     endforeach()
 
+    add_bmboot_payload(payload_MemoryLatency src/benchmarks/MemoryLatency/MemoryLatency.c src/benchmarks/MemoryLatency/MemoryLatency_arm.s)
+
     # -----------------------------------------------------------------------------------------------------------
 else()
     set(GENERATED_INCLUDE ${CMAKE_BINARY_DIR}/generated_include)
@@ -273,12 +275,15 @@ else()
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_manager)
 
+    add_executable(MemoryLatency src/benchmarks/MemoryLatency/MemoryLatency.c src/benchmarks/MemoryLatency/MemoryLatency_arm.s)
+    target_link_libraries(MemoryLatency PUBLIC m)
+
     add_executable(message_queue_demo
             src/tools/message_queue_demo.cpp
             )
     target_link_libraries(message_queue_demo PUBLIC bmboot_manager)
 
-    foreach(TOOL bmctl console message_queue_demo)
+    foreach(TOOL bmctl console MemoryLatency message_queue_demo)
         # Make sure bmctl is linked fully statically
         # This is only a temporary workaround for the discrepancy between library versions expected by our compiler
         # and available on the target OS (PetaLinux 2019).
