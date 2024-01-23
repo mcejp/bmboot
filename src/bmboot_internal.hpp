@@ -45,6 +45,8 @@ enum Response
 {
     crc_ok,
     crc_mismatched,
+    image_malformed,
+    abi_incompatible,
 };
 
 // zeroed in bmboot::startup_domain

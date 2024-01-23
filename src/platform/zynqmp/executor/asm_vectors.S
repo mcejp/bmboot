@@ -264,7 +264,21 @@ _vector_table:
 	/* End of Image header.  */
 .endif
 
+#if __bmboot__
+    /* Bmboot-specific: payload image header (32 bytes) */
+   	ldr	x16, =_boot                 /* 8-byte thunk */
+   	br	x16
+
+    .word   0x6f626d42              /* magic number */
+    .byte   0x01                    /* ABI major version */
+    .byte   0x01                    /* ABI minor version */
+    .hword  0x0000                  /* res0 */
+
+    .dword  _vector_table           /* image load address */
+    .dword  _PROGRAM_SIZE           /* program size */
+#else
 	b	_boot
+#endif
 
 // Exceptions taken from current EL when using SP_ELx (always the case)
 .org (VBAR + 0x200)

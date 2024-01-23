@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - New payload runtime functions `getBuiltinTimerFrequency`, `getBuiltinTimerValue`
+- Payloads now embed an explicit header. This enables validation of ABI compatibility, load address and program size.
 
 ### Fixed
 

@@ -520,13 +520,23 @@ MaybeError Domain::startPayloadAt(uintptr_t entry_address,
 
         if (inbox.cmd_ack == outbox.cmd_seq)
         {
-            if (inbox.cmd_resp == Response::crc_mismatched)
+            switch (inbox.cmd_resp)
             {
-                return ErrorCode::payload_checksum_mismatch;
-            }
-            else
-            {
-                // Otherwise we expect Response::crc_ok, but we are waiting for DomainState::running_payload anyway
+                case Response::crc_ok:
+                    // Good, but we are waiting for DomainState::running_payload
+                    break;
+
+                case Response::crc_mismatched:
+                    return ErrorCode::payload_checksum_mismatch;
+
+                case Response::image_malformed:
+                    return ErrorCode::payload_image_malformed;
+
+                case Response::abi_incompatible:
+                    return ErrorCode::payload_abi_incompatible;
+
+                default:
+                    return ErrorCode::unknown_error;
             }
         }
 

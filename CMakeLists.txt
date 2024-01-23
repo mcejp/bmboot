@@ -33,6 +33,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
             src/utility/message_queue.cpp
             )
 
+    target_compile_definitions(${TARGET} PUBLIC __bmboot__=1)
     target_compile_features(${TARGET} PUBLIC cxx_std_20)
 
     target_include_directories(${TARGET} PUBLIC

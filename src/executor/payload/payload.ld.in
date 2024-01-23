@@ -310,6 +310,8 @@ _SDA2_BASE_ = __sdata2_start + ((__sbss2_end - __sdata2_start) / 2 );
    __dup_data_end = .;
 } > RAM
 
+_PROGRAM_SIZE = . - _vector_table;
+
 .handoff_params (NOLOAD) : {
    . = ALIGN(512);
    *(.handoff_params)

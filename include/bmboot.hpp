@@ -43,9 +43,12 @@ enum ErrorCode
     hw_resource_unavailable,            //!< Hardware resource unavailable
     payload_start_timed_out,            //!< The payload failed to confirm a successful start-up within the timeout
     payload_checksum_mismatch,          //!< Payload checksum failed to validate
+    payload_image_malformed,            //!< Payload image is not in the correct format
+    payload_abi_incompatible,           //!< Payload is built against an incompatible version of Bmboot
     payload_crashed_during_startup,     //!< The payload crashed before confirming a successful start-up
     program_too_large,                  //!< The provided program is too large
     monitor_start_timed_out,            //!< The monitor failed to confirm a successful start-up within the timeout
+    unknown_error,                      //!< Unspecified internal error
 
     // TODO: might want to just propagate the OS error for these?
     dev_mem_access_failed,              //!< Failed to access the @c /dev/mem special device
