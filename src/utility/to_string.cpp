@@ -62,6 +62,7 @@ std::string bmboot::toString(DomainState state) {
 std::string bmboot::toString(ErrorCode err) {
     switch (err) {
         case ErrorCode::bad_domain_state: return "bad domain state";
+        case ErrorCode::configuration_file_error: return "/etc/bmboot.conf not found or malformed (see docs)";
         case ErrorCode::hw_resource_unavailable: return "hardware resource unavailable";
         case ErrorCode::payload_crashed_during_startup: return "payload crashed during startup";
         case ErrorCode::payload_start_timed_out: return "payload startup timed out";

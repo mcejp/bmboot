@@ -55,6 +55,9 @@ struct IpcBlock
         Command cmd;
         uint32_t cmd_seq;
 
+        uint32_t cntfrq;            // CNTFRQ_EL0 is supposed to be set by firmware -- but there is no firmware running under Bmboot
+                                    // (maybe there could be if we used PSCI to boot the monitor?)
+
         uintptr_t payload_entry_address;
         size_t payload_size;
         uint32_t payload_crc;

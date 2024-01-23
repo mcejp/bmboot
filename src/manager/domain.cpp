@@ -4,6 +4,7 @@
 
 #include "../bmboot_internal.hpp"
 #include "bmboot/domain.hpp"
+#include "bmboot/manager_configuration.hpp"
 #include "coredump_linux.hpp"
 #include "../utility/mmap.hpp"
 
@@ -561,6 +562,12 @@ MaybeError Domain::startup()
 
 MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
 {
+    ManagerConfiguration config {};
+    if (!loadConfigurationFromDefaultFile(config))
+    {
+        return ErrorCode::configuration_file_error;
+    }
+
     if (domain_general_state[m_domain] != DomainGeneralState::inReset)
     {
         return ErrorCode::bad_domain_state;
@@ -603,6 +610,9 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
     // initialize IPC block
     memset((void*) &m_ipc_block, 0, ranges.monitor_ipc_size);
     m_ipc_block.executor_to_manager.state = DomainState::invalid_state;
+
+    // patch in the frequency of the Generic Timer (see doc/arch-counter.rst)
+    m_ipc_block.manager_to_executor.cntfrq = config.cntfrq;
 
     // flush the IPC region to DDR (since the SCU is not in effect yet and CPUn will come up with cold caches)
     __clear_cache(&m_ipc_block, (uint8_t*) &m_ipc_block + ranges.monitor_ipc_size);

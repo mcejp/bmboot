@@ -35,9 +35,11 @@ enum DomainIndex
     max_domain,
 };
 
+// Keep this in sync with the corresponding toString function
 enum ErrorCode
 {
     bad_domain_state,                   //!< The requested operation is not permitted in the current state
+    configuration_file_error,           //!< Configuration file not found or is malformed
     hw_resource_unavailable,            //!< Hardware resource unavailable
     payload_start_timed_out,            //!< The payload failed to confirm a successful start-up within the timeout
     payload_checksum_mismatch,          //!< Payload checksum failed to validate

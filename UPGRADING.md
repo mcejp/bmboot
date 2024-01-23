@@ -2,6 +2,10 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
+## From 0.4
+
+- It is now necessary to provide a configuration file at run time. See _Configuration_ section in the documentation.
+
 ## From 0.3 to 0.4
 
 - `Domain::loadAndStartPayload` now requires and additional argument, which can be retrieved by the payload.

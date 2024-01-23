@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Better handling of high-traffic console output
+- Fixed incorrect frequency of the Generic Timer (`CNTFRQ_EL0`) on ZCU102 Evaluation Kit
 
 ## 0.4 - 2023-12-12
 

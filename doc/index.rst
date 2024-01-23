@@ -9,6 +9,7 @@ Bmboot docs
    questions
    requirements
    build
+   configuration
    core-dump
    exceptions
    external-requirements

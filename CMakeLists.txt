@@ -227,6 +227,7 @@ else()
             include/bmboot.hpp
             include/bmboot/domain.hpp
             src/bmboot_internal.hpp
+            src/manager/configuration.cpp
             src/manager/coredump_linux.cpp
             src/manager/domain.cpp
             src/manager/domain_helpers.cpp
