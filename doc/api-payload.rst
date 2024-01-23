@@ -10,8 +10,12 @@ Related terminology:
 
 Header: :src_file:`include/bmboot/payload_runtime.hpp`
 
-Periodic interrupt (private timer)
-==================================
+Built-in timer & periodic interrupt
+===================================
+
+.. doxygenfunction:: bmboot::getBuiltinTimerFrequency
+
+.. doxygenfunction:: bmboot::getBuiltinTimerValue
 
 .. doxygenfunction:: bmboot::setupPeriodicInterrupt
 

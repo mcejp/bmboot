@@ -30,6 +30,30 @@ enum class PayloadInterruptPriority
 //! Callback function for the periodic interrupt
 using InterruptHandler = std::function<void()>;
 
+//! Get the frequency of the built-in timer.
+//!
+//! Per document 102379_0100_02_en (<em>Learn the architecture - Generic Timer</em>), this frequency should typically
+//! be in the range of 1MHz to 50MHz. Yet, the default on ZCU102 is actually close to 100MHz.
+//!
+//! \return Frequency in Hz
+inline uint32_t getBuiltinTimerFrequency()
+{
+    uint64_t freq;
+    asm("mrs %0, CNTFRQ_EL0" : "=r" (freq));
+    return freq;
+}
+
+//! Get the current value of the built-in (always running) timer.
+//!
+//! \return Timer value
+inline uint32_t getBuiltinTimerValue()
+{
+    // NOTE: should perhaps use CNTPCTSS_EL0 & ISB; see D10.2.1 in AArch64 ARM
+    uint64_t cntval;
+    asm volatile("mrs %0, CNTPCT_EL0" : "=r" (cntval));
+    return cntval;
+}
+
 //! Retrieve the argument provided when calling bmboot::IDomain::loadAndStartPayload
 //!
 //! \return Argument value
