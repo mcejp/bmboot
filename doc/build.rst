@@ -2,7 +2,7 @@
 How to build it
 ***************
 
-The build system is driven by CMake. A tricky aspect of it is the requirement to use two separate toolchains:
+The build system is driven by CMake. It is complicated by the need of using two separate toolchains in the process:
 
 - ``aarch64-none-linux-gnu-gcc`` 12.3 (Linux)
 - ``aarch64-none-elf-gcc`` 12.3 (bare metal)
@@ -12,6 +12,8 @@ The build system operates in one of 3 modes:
 - :term:`manager`
 - :term:`monitor`
 - :term:`payload`
+
+.. image:: build-tree.png
 
 When building the manager, CMake will recurse into itself to build the monitor, which ends up being embedded in
 the manager library. Due to this, a number of variables are mandatory, whether building the project stand-alone or via
@@ -26,6 +28,27 @@ Additionally, these are mandatory:
 - BMBOOT_BSP_EL1_HOME
 - BMBOOT_BSP_EL1_INCLUDE_DIR
 - BMBOOT_BSP_EL1_LIBRARIES
+
+
+Building Bmboot stand-alone
+===========================
+
+Example (might need to adjust the paths):
+
+.. code-block:: shell
+
+  export PATH=/opt/fgcd2/bin/arm-gnu-toolchain-12.3.rel1-x86_64-aarch64-none-linux-gnu/bin:\
+              /opt/fgcd2/bin/arm-gnu-toolchain-12.3.rel1-x86_64-aarch64-none-elf/bin:\
+              $PATH
+
+  cmake -B build-bmboot \
+      -DCMAKE_C_COMPILER=aarch64-none-linux-gnu-gcc \
+      -DCMAKE_CXX_COMPILER=aarch64-none-linux-gnu-g++ \
+      -DLIBRARIES_HOME=/opt/fgcd2/libs/
+
+  cmake --build build-bmboot
+
+This will build bmctl, the manager library, the monitor and a number of example programs.
 
 
 User payloads
