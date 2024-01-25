@@ -66,13 +66,9 @@ extern "C" void IRQInterrupt(void)
 
 // ************************************************************
 
-// rethink: currently this gets compiled separately for EL1 and EL3. but do we want that?
-// shouldn't all EL1 errors trigger a switch into EL3 and be handled there?
-//
-// also because we can end up here EITHER due to an EL3 issue or an EL1 issue that trapped to EL3
 extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 {
-    auto ec = (mfcp(ESR_EL3) >> 26) & 0b111111;
+    auto ec = (readSysReg(ESR_EL3) >> 26) & 0b111111;
 
     if (ec == EC_SMC)
     {

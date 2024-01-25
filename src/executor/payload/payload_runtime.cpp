@@ -10,7 +10,6 @@
 #include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
-#include "xpseudo_asm.h"
 
 using namespace bmboot;
 using namespace bmboot::internal;
@@ -46,11 +45,11 @@ void bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority pr
 void bmboot::setupPeriodicInterrupt(int period_us, InterruptHandler handler)
 {
     // ticks = duration_us * timer_freq_Hz / 1e6
-    timer_period_ticks = (uint64_t) period_us * mfcp(CNTFRQ_EL0) / 1'000'000;
+    timer_period_ticks = (uint64_t) period_us * readSysReg(CNTFRQ_EL0) / 1'000'000;
     timer_irq_handler = std::move(handler);
 
     // stop timer if already running
-    mtcp(CNTP_CTL_EL0, 0);
+    writeSysReg(CNTP_CTL_EL0, 0);
 
     setupInterruptHandling(mach::CNTPNS_IRQ_CHANNEL,
                            PayloadInterruptPriority::p7_max,
@@ -62,20 +61,20 @@ void bmboot::startPeriodicInterrupt()
     enableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
 
     // configure timer & start it
-    mtcp(CNTP_TVAL_EL0, timer_period_ticks);
-    mtcp(CNTP_CTL_EL0, 1);          // TODO: magic number!
+    writeSysReg(CNTP_TVAL_EL0, timer_period_ticks);
+    writeSysReg(CNTP_CTL_EL0, 1);          // TODO: magic number!
 }
 
 void bmboot::stopPeriodicInterrupt()
 {
-    mtcp(CNTP_CTL_EL0, 0);
+    writeSysReg(CNTP_CTL_EL0, 0);
 
     disableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
 }
 
 void internal::handleTimerIrq()
 {
-    if ((mfcp(CNTP_CTL_EL0) & 4) == 0)  // check that the timer is really signalled -- just for good measure
+    if ((readSysReg(CNTP_CTL_EL0) & 4) == 0)  // check that the timer is really signalled -- just for good measure
     {
         return;
     }
@@ -90,7 +89,7 @@ void internal::handleTimerIrq()
     }
 
     // must either set new deadline...
-    mtcp(CNTP_CVAL_EL0, mfcp(CNTP_CVAL_EL0) + timer_period_ticks);
+    writeSysReg(CNTP_CVAL_EL0, readSysReg(CNTP_CVAL_EL0) + timer_period_ticks);
     // ...or disable the interrupt
 //    mtcp(CNTP_CTL_EL0, 0);
 }

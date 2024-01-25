@@ -3,8 +3,7 @@
 //! @author Martin Cejp
 
 #include "executor.hpp"
-
-#include "xpseudo_asm.h"
+#include "executor_asm.hpp"
 
 using namespace bmboot;
 using namespace bmboot::internal;
@@ -12,7 +11,7 @@ using namespace bmboot::internal;
 int internal::getCpuIndex()
 {
     // Read Aff0 field of MPIDR_EL1
-    return (mfcp(MPIDR_EL1) & 0xff);
+    return (readSysReg(MPIDR_EL1) & 0xff);
 }
 
 IpcBlock& internal::getIpcBlock()

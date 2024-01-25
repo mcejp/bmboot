@@ -7,8 +7,6 @@
 
 #include <cstring>
 
-#include "xpseudo_asm.h"
-
 // ************************************************************
 
 using namespace bmboot;
@@ -142,7 +140,7 @@ void internal::reportCrash(CrashingEntity who, const char* desc, uintptr_t addre
     auto& outbox = getIpcBlock().executor_to_manager;
 
     outbox.fault_pc = address;
-    outbox.fault_el = mfcp(currentEL);
+    outbox.fault_el = readSysReg(currentEL);
     strncpy(outbox.fault_desc, desc, sizeof(outbox.fault_desc));
     outbox.state = (who == CrashingEntity::payload) ? DomainState::crashed_payload : DomainState::crashed_monitor;
 

@@ -9,8 +9,6 @@
 #include "platform_interrupt_controller.hpp"
 #include "utility/crc32.hpp"
 
-#include "xpseudo_asm.h"
-
 #include <string.h>
 
 using namespace bmboot;
@@ -30,7 +28,7 @@ extern "C" int main()
     volatile auto& outbox = ipc_block.executor_to_manager;
 
     // This is normally set by the firmware... plot twist -- we're the firmware now.
-    mtcp(CNTFRQ_EL0, inbox.cntfrq);
+    writeSysReg(CNTFRQ_EL0, inbox.cntfrq);
 
     platform::setupInterrupts();
 
