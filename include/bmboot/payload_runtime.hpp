@@ -46,7 +46,7 @@ inline uint32_t getBuiltinTimerFrequency()
 //! Get the current value of the built-in (always running) timer.
 //!
 //! \return Timer value
-inline uint32_t getBuiltinTimerValue()
+inline uint64_t getBuiltinTimerValue()
 {
     // NOTE: should perhaps use CNTPCTSS_EL0 & ISB; see D10.2.1 in AArch64 ARM
     uint64_t cntval;

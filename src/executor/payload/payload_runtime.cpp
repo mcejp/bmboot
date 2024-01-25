@@ -119,3 +119,8 @@ int bmboot::writeToStdout(void const* data, size_t size)
 {
     return smc(SMC_WRITE_STDOUT, data, size);
 }
+
+extern "C" void bmNotifyPayloadStarted()
+{
+    notifyPayloadStarted();
+}
