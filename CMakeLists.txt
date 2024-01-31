@@ -5,20 +5,21 @@ if (BUILD_MONITOR OR BMBOOT_BUILD_PAYLOAD)
         message(FATAL_ERROR "You must provide CMAKE_SIZE option")
     endif()
 
-    add_compile_options(-O2 -Wall -mtune=cortex-a53 -ffunction-sections -fdata-sections)
-    add_compile_definitions(_DIOT=1)
-
+    # Note that link options are NOT propagated via static libraries to the ultimate executable
     add_link_options(
-            -Wall
-#            -ffreestanding                  # no reason to use this since we do have a libc
+            #-ffreestanding                  # no reason to use this since we *do* have a libc
             -specs=nosys.specs              # without this we don't get _exit, _sbrk and I/O functions
-            -Wl,--gc-sections
-    )
+            )
 endif()
 
 project(bmboot C CXX ASM)
 
 include(cmake/Bmboot.cmake)
+
+# These flags will be added to all targets defined in this file
+# No nicer way to do --gc-sections: https://gitlab.kitware.com/cmake/cmake/-/issues/23235
+add_compile_options(-Wall -ffunction-sections -fdata-sections)
+add_link_options(-Wl,--gc-sections)
 
 function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
     set(TARGET bmboot_payload_runtime)
@@ -35,6 +36,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
 
     target_compile_definitions(${TARGET} PUBLIC __bmboot__=1)
     target_compile_features(${TARGET} PUBLIC cxx_std_20)
+    target_compile_options(${TARGET} PRIVATE -Wall)
 
     target_include_directories(${TARGET} PUBLIC
             include

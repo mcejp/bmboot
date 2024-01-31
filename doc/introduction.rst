@@ -121,8 +121,6 @@ Glossary
    Inter-Processor Interrupt
       A mechanism by which one CPU core can trigger an interrupt on another CPU core.
 
-      For usage in bmboot, see :doc:`ipi`
-
    IRQ
       Interrupt request
 

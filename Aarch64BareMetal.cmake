@@ -11,5 +11,7 @@ set(CMAKE_CXX_COMPILER aarch64-none-elf-g++ CACHE FILEPATH "C Compiler")
 set(CMAKE_OBJCOPY aarch64-none-elf-objcopy CACHE FILEPATH "Objcopy Binary")
 set(CMAKE_OBJDUMP aarch64-none-elf-objdump CACHE FILEPATH "Objdump Binary")
 
-# This one is not defined by CMake (but we need it)
-set(CMAKE_SIZE aarch64-none-elf-size CACHE FILEPATH "Size Binary (binutils)")
+# This one is not known to CMake, but we need it
+find_program(CMAKE_SIZE aarch64-none-elf-size)
+
+set(CMAKE_C_FLAGS_INIT -mtune=cortex-a53)

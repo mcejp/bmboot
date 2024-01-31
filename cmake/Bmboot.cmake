@@ -18,6 +18,7 @@ function(add_bmboot_payload NAME)
         set_target_properties("${TARGET}" PROPERTIES SUFFIX ".elf")
 
         target_link_options(${TARGET} PUBLIC
+                -specs=nosys.specs
                 -Wl,-T,${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/executor/payload/payload_cpu${CPU}.ld)
 
         Bmboot_PayloadPostBuild("${TARGET}")
