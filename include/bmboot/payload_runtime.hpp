@@ -4,6 +4,9 @@
 
 #pragma once
 
+// workaround to allow including sstream indirectly via chrono: macro 'str' has been (re-)defined by Xilinx engineers
+// in their infinite wisdom in xpseudo_asm_gcc.h and clashes with standard library's definition
+#undef str
 #include <chrono>
 
 #include "bmboot.hpp"
