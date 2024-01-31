@@ -42,10 +42,10 @@ void bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority pr
     smc(SMC_ZYNQMP_GIC_IRQ_CONFIGURE, interruptId, (int) priority);
 }
 
-void bmboot::setupPeriodicInterrupt(int period_us, InterruptHandler handler)
+void bmboot::setupPeriodicInterrupt(std::chrono::microseconds period_us, InterruptHandler handler)
 {
     // ticks = duration_us * timer_freq_Hz / 1e6
-    timer_period_ticks = (uint64_t) period_us * readSysReg(CNTFRQ_EL0) / 1'000'000;
+    timer_period_ticks = (uint64_t) period_us.count() * readSysReg(CNTFRQ_EL0) / 1'000'000;
     timer_irq_handler = std::move(handler);
 
     // stop timer if already running
