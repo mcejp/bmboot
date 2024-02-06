@@ -21,7 +21,7 @@ include(cmake/Bmboot.cmake)
 add_compile_options(-Wall -ffunction-sections -fdata-sections)
 add_link_options(-Wl,--gc-sections)
 
-function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_LIBRARIES)
+function(add_bmboot_payload_library)
     set(TARGET bmboot_payload_runtime)
     add_library(${TARGET} STATIC
             src/executor/executor.cpp
@@ -30,7 +30,11 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_LIBRARIES
             src/executor/payload/syscalls.cpp
             src/executor/payload/syscalls.h
             src/platform/zynqmp/executor/asm_vectors.S
+            src/platform/zynqmp/executor/boot.S
             src/platform/zynqmp/executor/payload/vectors_el1.cpp
+            src/platform/zynqmp/executor/sleep.cpp
+            src/platform/zynqmp/executor/translation_table.S
+            src/platform/zynqmp/executor/xil-crt0.S
             src/utility/message_queue.cpp
             )
 
@@ -51,10 +55,6 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_LIBRARIES
             src/platform/zynqmp/executor/payload
             )
 
-    target_link_libraries(${TARGET} PUBLIC
-            ${BMBOOT_BSP_EL1_LIBRARIES}
-            )
-
     target_link_options(${TARGET} PUBLIC
             # These are necessary when syscalls.cpp is in a static library: https://stackoverflow.com/q/34986536
             -Wl,--undefined=_close
@@ -67,19 +67,7 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_LIBRARIES
 endfunction()
 
 if (BMBOOT_BUILD_PAYLOAD)
-    # note that in this case we expect BSP paths to be provided from outside
-
-    if(NOT DEFINED BMBOOT_BSP_EL1_HOME)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_HOME must be set")
-    endif()
-
-    if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
-    endif()
-
-    # -----------------------------------------------------------------------------------------------------------
-
-    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_LIBRARIES}")
+    add_bmboot_payload_library()
 
     add_bmboot_payload(bmboot_example_payload src/payloads/hello_world.cpp)
 
@@ -88,14 +76,6 @@ elseif (BUILD_MONITOR)
     # to be precise, what this configuration builds is the set of everything that bmboot_manager requires:
     #   - monitor_zynqmp_cpuN
     #   - test payloads
-
-    # not what we _should_ be doing, but something that works
-    include(../bsp/bsp.cmake)
-    MakeBsp(3)
-
-    if(NOT DEFINED BMBOOT_BSP_EL3_LIBRARIES)
-        message(FATAL_ERROR "BMBOOT_BSP_EL3_LIBRARIES must be set")
-    endif()
 
     # Monitor target (common)
 
@@ -107,8 +87,12 @@ elseif (BUILD_MONITOR)
             src/executor/monitor/monitor.cpp
             src/executor/monitor/smc_handlers.cpp
             src/platform/zynqmp/executor/asm_vectors.S
+            src/platform/zynqmp/executor/boot.S
             src/platform/zynqmp/executor/monitor/interrupt_controller.cpp
             src/platform/zynqmp/executor/monitor/vectors_el3.cpp
+            src/platform/zynqmp/executor/sleep.cpp
+            src/platform/zynqmp/executor/translation_table.S
+            src/platform/zynqmp/executor/xil-crt0.S
             src/utility/crc32.c
             )
 
@@ -122,10 +106,7 @@ elseif (BUILD_MONITOR)
             src/platform/zynqmp/executor/monitor
             )
     target_compile_features(monitor_zynqmp PUBLIC cxx_std_20)
-    target_link_libraries(monitor_zynqmp PRIVATE
-            m
-            ${BMBOOT_BSP_EL3_LIBRARIES}
-            )
+    target_link_libraries(monitor_zynqmp PRIVATE m)
 
     # Instantiate monitor target for each CPU core
 
@@ -155,19 +136,8 @@ elseif (BUILD_MONITOR)
     # -----------------------------------------------------------------------------------------------------------
 
     # use this opportunity to also build test payloads
-    # is it ok to trigger also EL1 BSP here? or is this all wrong? THIS NEEDS A LONG, HARD LOOK
 
-    MakeBsp(1)
-
-    if(NOT DEFINED BMBOOT_BSP_EL1_HOME)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_HOME must be set")
-    endif()
-
-    if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
-    endif()
-
-    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_LIBRARIES}")
+    add_bmboot_payload_library()
 
     foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo message_queue)
         add_bmboot_payload(payload_${PAYLOAD} src/payloads/${PAYLOAD}.cpp)
@@ -190,7 +160,6 @@ else()
                 -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo
                 -DBUILD_MONITOR=ON
-                -DBMBOOT_BSP_EL3_LIBRARIES=${BMBOOT_BSP_EL3_LIBRARIES}
             INSTALL_COMMAND ""
             BUILD_ALWAYS ON
             BUILD_BYPRODUCTS
