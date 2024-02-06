@@ -2,9 +2,9 @@
 #include "executor_asm.hpp"
 #include "monitor_internal.hpp"
 #include "platform_interrupt_controller.hpp"
+#include "zynqmp.hpp"
 #include "zynqmp_executor.hpp"
 
-#include "xipipsu.h"
 #include "xscugic.h"
 
 // ************************************************************
@@ -15,6 +15,7 @@ enum {
 
 using namespace bmboot;
 using namespace bmboot::internal;
+using namespace zynqmp;
 
 // ************************************************************
 
@@ -25,10 +26,11 @@ extern "C" void FIQInterrupt(void)
     auto my_ipi = mach::getIpiChannelForCpu(getCpuIndex());
 
     if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::getInterruptIdForIpi(my_ipi)) {
+        auto ipi = mach::getIpi(my_ipi);
+
         // acknowledge IPI
-        auto ipi_base = mach::getIpiBaseAddress(my_ipi);
-        auto source_mask = XIpiPsu_ReadReg(ipi_base, XIPIPSU_ISR_OFFSET);
-        XIpiPsu_WriteReg(ipi_base, XIPIPSU_ISR_OFFSET, source_mask);
+        auto source_mask = ipi->ISR;
+        ipi->ISR = source_mask;
 
         XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
 

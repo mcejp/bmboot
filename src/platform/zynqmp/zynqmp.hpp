@@ -7,6 +7,24 @@
 #include <cstdint>
 #include <cstdlib>
 
+namespace zynqmp
+{
+    // XIpiPsu (XilinxProcessorIPLib/drivers/ipipsu/src/xipipsu_hw.h)
+    namespace ipipsu
+    {
+        struct IPIPSU
+        {
+            volatile uint32_t TRIG;         // Trigger register
+            volatile uint32_t OBS;          // Observation register
+            volatile uint32_t reserved[2];  //
+            volatile uint32_t ISR;          // ISR register
+            volatile uint32_t IMR;          // Interrupt Mask Register
+            volatile uint32_t IER;          // Interrupt Enable Register
+            volatile uint32_t IDR;          // Interrupt Disable Register
+        };
+    }
+}
+
 namespace bmboot::mach
 {
 
@@ -50,6 +68,11 @@ inline uintptr_t getIpiBaseAddress(IpiChannel ipi_channel)
         case IpiChannel::ch9:   return 0xFF36'0000;
         case IpiChannel::ch10:  return 0xFF37'0000;
     }
+}
+
+inline auto getIpi(IpiChannel ipi_channel)
+{
+    return (zynqmp::ipipsu::IPIPSU*) getIpiBaseAddress(ipi_channel);
 }
 
 inline uint32_t getIpiPeerMask(IpiChannel ipi_channel)

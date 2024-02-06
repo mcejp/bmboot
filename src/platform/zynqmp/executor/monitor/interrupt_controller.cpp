@@ -23,16 +23,6 @@ static bool interrupt_routed_to_el1[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_US
 
 // ************************************************************
 
-static uint32_t read32(size_t offset) {
-    return *(uint32_t volatile*)offset;
-}
-
-static void write32(size_t offset, uint32_t value) {
-    *(uint32_t volatile*)offset = value;
-}
-
-// ************************************************************
-
 int bmboot::mach::getInterruptIdForIpi(IpiChannel ipi_channel)
 {
     // Mapping of IPI channels to interrupt IDs can be found in UG1085, Table 13-1: System Interrupts

@@ -1,5 +1,5 @@
 //! @file
-//! @brief  Executor assembly functions
+//! @brief  Executor assembly functions & inline assembly intrinsics
 //! @author Martin Cejp
 
 #pragma once
