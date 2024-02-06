@@ -4,12 +4,11 @@
 
 #include <bmboot/payload_runtime.hpp>
 
+#include "armv8a.hpp"
 #include "executor.hpp"
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
 #include "zynqmp_executor.hpp"
-
-#include "bspconfig.h"
 
 using namespace bmboot;
 using namespace bmboot::internal;

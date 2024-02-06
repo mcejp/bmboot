@@ -2,18 +2,17 @@
 //! @brief  Machine-specific functions, bare metal
 //! @author Martin Cejp
 
+#include "armv8a.hpp"
 #include "bmboot_internal.hpp"
 #include "executor.hpp"
 #include "platform_interrupt_controller.hpp"
 #include "zynqmp.hpp"
 #include "zynqmp_executor.hpp"
 
-#include "bspconfig.h"
-#include "xpseudo_asm.h"
-#include "xreg_cortexa53.h"
-
 // TODO: NO MAGIC NUMBERS
 
+using arm::armv8a::DAIF_F_MASK;
+using arm::armv8a::DAIF_I_MASK;
 using namespace bmboot::internal;
 using namespace bmboot::mach;
 using namespace bmboot::platform;
@@ -57,9 +56,7 @@ static void enableCpuInterrupts() {
     // Enable FIQ & IRQ.
     // By design, in the monitor we only receive FIQ, but since all IRQ handler code is already in place, just in case
     // we mess up and get one, we might as well report it, instead of falling into some kind of stub handler.
-
-    // very misleading -- these are in fact *mask* bits, not *enable* bits
-    mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE & ~XREG_CPSR_FIQ_ENABLE);
+    writeSysReg(DAIF, readSysReg(DAIF) & ~DAIF_I_MASK & ~DAIF_F_MASK);
 }
 
 // ************************************************************
@@ -84,18 +81,16 @@ void bmboot::platform::flushICache() {
     // Copyright (C) 2014 - 2022 Xilinx, Inc.  All rights reserved.
     // Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All Rights Reserved.
 
-#define IRQ_FIQ_MASK 0xC0U	/**< Mask IRQ and FIQ interrupts in cpsr */
-
     unsigned int currmask;
-    currmask = mfcpsr();
-    mtcpsr(currmask | IRQ_FIQ_MASK);
-    mtcp(CSSELR_EL1,0x1);
-    dsb();
+    currmask = readSysReg(DAIF);
+    writeSysReg(DAIF, currmask | DAIF_F_MASK | DAIF_I_MASK);
+    writeSysReg(CSSELR_EL1,0x1);
+    __asm__ __volatile__("dsb sy");
     /* invalidate the instruction cache */
-    mtcpicall(IALLU);
+    __asm__ __volatile__("ic iallu");
     /* Wait for invalidate to complete */
-    dsb();
-    mtcpsr(currmask);
+    __asm__ __volatile__("dsb sy");
+    writeSysReg(DAIF, currmask);
 }
 
 // ************************************************************

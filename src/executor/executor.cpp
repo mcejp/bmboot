@@ -2,6 +2,7 @@
 //! @brief  Executor internal functions
 //! @author Martin Cejp
 
+#include "armv8a.hpp"
 #include "executor.hpp"
 #include "executor_asm.hpp"
 

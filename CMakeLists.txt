@@ -21,7 +21,7 @@ include(cmake/Bmboot.cmake)
 add_compile_options(-Wall -ffunction-sections -fdata-sections)
 add_link_options(-Wl,--gc-sections)
 
-function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_DIR BMBOOT_BSP_EL1_LIBRARIES)
+function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_LIBRARIES)
     set(TARGET bmboot_payload_runtime)
     add_library(${TARGET} STATIC
             src/executor/executor.cpp
@@ -49,9 +49,6 @@ function(add_bmboot_payload_library BMBOOT_BSP_EL1_HOME BMBOOT_BSP_EL1_INCLUDE_D
             src/platform/zynqmp
             src/platform/zynqmp/executor
             src/platform/zynqmp/executor/payload
-
-            ${BMBOOT_BSP_EL1_INCLUDE_DIR}       # Note that this is PRIVATE, so it won't leak into user application
-                                                # Q: Is that a feature or a bug?
             )
 
     target_link_libraries(${TARGET} PUBLIC
@@ -76,17 +73,13 @@ if (BMBOOT_BUILD_PAYLOAD)
         message(FATAL_ERROR "BMBOOT_BSP_EL1_HOME must be set")
     endif()
 
-    if(NOT DEFINED BMBOOT_BSP_EL1_INCLUDE_DIR)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_INCLUDE_DIR must be set")
-    endif()
-
     if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
         message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
     endif()
 
     # -----------------------------------------------------------------------------------------------------------
 
-    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
+    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_LIBRARIES}")
 
     add_bmboot_payload(bmboot_example_payload src/payloads/hello_world.cpp)
 
@@ -99,10 +92,6 @@ elseif (BUILD_MONITOR)
     # not what we _should_ be doing, but something that works
     include(../bsp/bsp.cmake)
     MakeBsp(3)
-
-    if(NOT DEFINED BMBOOT_BSP_EL3_INCLUDE_DIR)
-        message(FATAL_ERROR "BMBOOT_BSP_EL3_INCLUDE_DIR must be set")
-    endif()
 
     if(NOT DEFINED BMBOOT_BSP_EL3_LIBRARIES)
         message(FATAL_ERROR "BMBOOT_BSP_EL3_LIBRARIES must be set")
@@ -131,8 +120,6 @@ elseif (BUILD_MONITOR)
             src/platform/zynqmp
             src/platform/zynqmp/executor
             src/platform/zynqmp/executor/monitor
-
-            ${BMBOOT_BSP_EL3_INCLUDE_DIR}
             )
     target_compile_features(monitor_zynqmp PUBLIC cxx_std_20)
     target_link_libraries(monitor_zynqmp PRIVATE
@@ -176,15 +163,11 @@ elseif (BUILD_MONITOR)
         message(FATAL_ERROR "BMBOOT_BSP_EL1_HOME must be set")
     endif()
 
-    if(NOT DEFINED BMBOOT_BSP_EL1_INCLUDE_DIR)
-        message(FATAL_ERROR "BMBOOT_BSP_EL1_INCLUDE_DIR must be set")
-    endif()
-
     if(NOT DEFINED BMBOOT_BSP_EL1_LIBRARIES)
         message(FATAL_ERROR "BMBOOT_BSP_EL1_LIBRARIES must be set")
     endif()
 
-    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_INCLUDE_DIR}" "${BMBOOT_BSP_EL1_LIBRARIES}")
+    add_bmboot_payload_library("${BMBOOT_BSP_EL1_HOME}" "${BMBOOT_BSP_EL1_LIBRARIES}")
 
     foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo message_queue)
         add_bmboot_payload(payload_${PAYLOAD} src/payloads/${PAYLOAD}.cpp)
@@ -207,7 +190,6 @@ else()
                 -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo
                 -DBUILD_MONITOR=ON
-                -DBMBOOT_BSP_EL3_INCLUDE_DIR=${BMBOOT_BSP_EL3_INCLUDE_DIR}
                 -DBMBOOT_BSP_EL3_LIBRARIES=${BMBOOT_BSP_EL3_LIBRARIES}
             INSTALL_COMMAND ""
             BUILD_ALWAYS ON

@@ -2,6 +2,7 @@
 //! @brief  Implements the bmboot monitor
 //! @author Martin Cejp
 
+#include "armv8a.hpp"
 #include "bmboot_internal.hpp"
 #include "executor.hpp"
 #include "executor_asm.hpp"

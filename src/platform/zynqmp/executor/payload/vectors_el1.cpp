@@ -1,3 +1,4 @@
+#include "armv8a.hpp"
 #include "bmboot/payload_runtime.hpp"
 #include "executor.hpp"
 #include "executor_asm.hpp"
@@ -5,10 +6,10 @@
 #include "zynqmp.hpp"
 #include "zynqmp_executor.hpp"
 
-#include "xpseudo_asm.h"
-
 // ************************************************************
 
+using arm::armv8a::DAIF_F_MASK;
+using arm::armv8a::DAIF_I_MASK;
 using namespace bmboot;
 using namespace bmboot::internal;
 using namespace zynqmp;
@@ -44,11 +45,11 @@ extern "C" void IRQInterrupt(void)
         // https://github.com/Xilinx/embeddedsw/blob/8fca1ac929453ba06613b5417141483b4c2d8cf3/lib/bsp/standalone/src/arm/common/xil_exception.h#L371
         uint64_t spsr = readSysReg(SPSR_EL1);
         uint64_t elr = readSysReg(ELR_EL1);
-        mtcpsr(mfcpsr() & ~XREG_CPSR_IRQ_ENABLE);           // clear IRQ *mask* bit (mis-named constant)
+        writeSysReg(DAIF, readSysReg(DAIF) & ~DAIF_I_MASK);
 
         user_interrupt_handlers[interrupt_id - GIC_MIN_USER_INTERRUPT_ID]();
 
-        mtcpsr(mfcpsr() | XREG_CPSR_IRQ_ENABLE);           // set IRQ *mask* bit (mis-named constant)
+        writeSysReg(DAIF, readSysReg(DAIF) | DAIF_I_MASK);              // mask IRQs again
         writeSysReg(SPSR_EL1, spsr);
         writeSysReg(ELR_EL1, elr);
 
