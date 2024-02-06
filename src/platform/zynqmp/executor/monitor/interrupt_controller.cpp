@@ -9,7 +9,6 @@
 #include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
-#include "xil_cache.h"
 #include "xpseudo_asm.h"
 #include "xreg_cortexa53.h"
 
@@ -79,7 +78,24 @@ static void enableIpiReception(IpiChannel src_channel, IpiChannel dst_channel)
 // ************************************************************
 
 void bmboot::platform::flushICache() {
-    Xil_ICacheInvalidate();
+    // Adapted from Xil_ICacheInvalidate in BSP lib/bsp/standalone/src/arm/ARMv8/64bit/xil_cache.c
+    // This code seems rather weird -- compare with __asm_invalidate_icache_all in U-Boot arch/arm/cpu/armv8/cache.S
+
+    // Copyright (C) 2014 - 2022 Xilinx, Inc.  All rights reserved.
+    // Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+#define IRQ_FIQ_MASK 0xC0U	/**< Mask IRQ and FIQ interrupts in cpsr */
+
+    unsigned int currmask;
+    currmask = mfcpsr();
+    mtcpsr(currmask | IRQ_FIQ_MASK);
+    mtcp(CSSELR_EL1,0x1);
+    dsb();
+    /* invalidate the instruction cache */
+    mtcpicall(IALLU);
+    /* Wait for invalidate to complete */
+    dsb();
+    mtcpsr(currmask);
 }
 
 // ************************************************************
