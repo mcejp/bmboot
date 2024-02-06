@@ -5,19 +5,20 @@
 #include "bmboot_internal.hpp"
 #include "executor.hpp"
 #include "platform_interrupt_controller.hpp"
+#include "zynqmp.hpp"
 #include "zynqmp_executor.hpp"
 
 #include "bspconfig.h"
 #include "xil_cache.h"
 #include "xpseudo_asm.h"
 #include "xreg_cortexa53.h"
-#include "xscugic.h"
 
 // TODO: NO MAGIC NUMBERS
 
 using namespace bmboot::internal;
 using namespace bmboot::mach;
 using namespace bmboot::platform;
+using namespace zynqmp;
 
 static bool interrupt_routed_to_el1[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_USER_INTERRUPT_ID];
 
@@ -42,18 +43,17 @@ int bmboot::mach::getInterruptIdForIpi(IpiChannel ipi_channel)
 
 static void enableCpuInterrupts() {
     // Upper 4 bits of priority value determine priority for preemption purposes
-    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_BIN_PT_OFFSET, 0x03);
+    scugic::GICC->BPR = 0x03;
     // Priority Mask Register: maximum value
-    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_CPU_PRIOR_OFFSET, 0xFF);
+    scugic::GICC->PMR = 0xFF;
 
     // Note that the meaning of the bits in this register changes based on S/NS access
     // We execute this in EL3 aka Secure
-    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR,
-                     XSCUGIC_CONTROL_OFFSET,
-                     (XSCUGIC_CNTR_FIQEN_MASK |
-                      XSCUGIC_CNTR_ACKCTL_MASK |
-                      XSCUGIC_CNTR_EN_NS_MASK |
-                      XSCUGIC_CNTR_EN_S_MASK));
+    using arm::gicv2::GICC;
+    scugic::GICC->CTRL = (GICC::CTRL_FIQEn |
+                          GICC::CTRL_AckCtl |
+                          GICC::CTRL_EnableGrp1 |
+                          GICC::CTRL_EnableGrp0);
 
     // Enable FIQ & IRQ.
     // By design, in the monitor we only receive FIQ, but since all IRQ handler code is already in place, just in case

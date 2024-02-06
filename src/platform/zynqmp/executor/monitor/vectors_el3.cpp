@@ -5,8 +5,6 @@
 #include "zynqmp.hpp"
 #include "zynqmp_executor.hpp"
 
-#include "xscugic.h"
-
 // ************************************************************
 
 enum {
@@ -21,18 +19,20 @@ using namespace zynqmp;
 
 extern "C" void FIQInterrupt(void)
 {
-    auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
+    auto iar = scugic::GICC->IAR;
+    auto interrupt_id = (iar & arm::gicv2::GICC::IAR_INTERRUPT_ID_MASK);
 
     auto my_ipi = mach::getIpiChannelForCpu(getCpuIndex());
 
-    if ((iar & XSCUGIC_ACK_INTID_MASK) == mach::getInterruptIdForIpi(my_ipi)) {
+    if (interrupt_id == mach::getInterruptIdForIpi(my_ipi)) {
         auto ipi = mach::getIpi(my_ipi);
 
         // acknowledge IPI
         auto source_mask = ipi->ISR;
         ipi->ISR = source_mask;
 
-        XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
+        // acknowledge interrupt
+        scugic::GICC->EOIR = iar;
 
         // IRQ triggered by APU?
         if (source_mask & mach::getIpiPeerMask(mach::IPI_SRC_BMBOOT_MANAGER)) {
@@ -47,7 +47,7 @@ extern "C" void FIQInterrupt(void)
     reportCrash(CrashingEntity::monitor, "Monitor FIQInterrupt", fault_address);
 
     // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
-    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
+    scugic::GICC->EOIR = iar;
     for (;;) {}
 }
 
@@ -56,13 +56,13 @@ extern "C" void FIQInterrupt(void)
 // Should never arrive to EL3
 extern "C" void IRQInterrupt(void)
 {
-    auto iar = XScuGic_ReadReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_INT_ACK_OFFSET);
+    auto iar = scugic::GICC->IAR;
 
     auto fault_address = iar; //get_ELR();
     reportCrash(CrashingEntity::monitor, "Monitor IRQInterrupt", fault_address);
 
     // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
-    XScuGic_WriteReg(XPAR_SCUGIC_0_CPU_BASEADDR, XSCUGIC_EOI_OFFSET, iar);
+    scugic::GICC->EOIR = iar;
     for (;;) {}
 }
 
@@ -78,7 +78,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
         return;
     }
 
-    auto fault_address = get_ELR();
+    auto fault_address = readSysReg(ELR_EL3);
 
     auto& ipc_block = getIpcBlock();
     saveFpuState(ipc_block.executor_to_manager.fpregs);
@@ -92,7 +92,7 @@ extern "C" void SynchronousInterrupt(Aarch64_Regs& saved_regs)
 
 extern "C" void SErrorInterrupt(void)
 {
-    auto fault_address = get_ELR();
+    auto fault_address = readSysReg(ELR_EL3);
     reportCrash(CrashingEntity::monitor, "Monitor SErrorInterrupt", fault_address);
     for (;;) {}
 }

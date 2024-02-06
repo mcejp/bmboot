@@ -6,8 +6,6 @@
 
 #include "bmboot_internal.hpp"
 
-#define get_ELR() mfcp(ELR_EL3)
-
 namespace bmboot::internal
 {
 

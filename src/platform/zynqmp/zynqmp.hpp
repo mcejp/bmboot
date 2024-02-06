@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include "../../executor/gicv2.hpp"
+
 namespace zynqmp
 {
     // XIpiPsu (XilinxProcessorIPLib/drivers/ipipsu/src/xipipsu_hw.h)
@@ -22,6 +24,16 @@ namespace zynqmp
             volatile uint32_t IER;          // Interrupt Enable Register
             volatile uint32_t IDR;          // Interrupt Disable Register
         };
+    }
+
+    // XScuGic
+    namespace scugic
+    {
+        // Not sure why this is defined in xparameters.h, seems very much hardwired in silicon...
+        constexpr inline uintptr_t CPU_BASEADDR = 0xF9020000U;
+
+        inline auto GICC = (arm::gicv2::GICC*) CPU_BASEADDR;
+        inline bool THICC = true;
     }
 }
 
