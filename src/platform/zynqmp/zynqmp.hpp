@@ -30,7 +30,10 @@ namespace zynqmp
     namespace scugic
     {
         // Not sure why this is defined in xparameters.h, seems very much hardwired in silicon...
+        constexpr inline uintptr_t DIST_BASEADDR = 0xF9010000U;
         constexpr inline uintptr_t CPU_BASEADDR = 0xF9020000U;
+
+        inline auto GICD = (arm::gicv2::GICD*) DIST_BASEADDR;
 
         inline auto GICC = (arm::gicv2::GICC*) CPU_BASEADDR;
         inline bool THICC = true;
