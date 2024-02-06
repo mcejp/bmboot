@@ -8,7 +8,7 @@
 #include "executor.hpp"
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
-#include "zynqmp_executor.hpp"
+#include "zynqmp.hpp"
 
 using namespace bmboot;
 using namespace bmboot::internal;
@@ -50,14 +50,14 @@ void bmboot::setupPeriodicInterrupt(std::chrono::microseconds period_us, Interru
     // stop timer if already running
     writeSysReg(CNTP_CTL_EL0, 0);
 
-    setupInterruptHandling(mach::CNTPNS_IRQ_CHANNEL,
+    setupInterruptHandling(zynqmp::scugic::CNTPNS_INTERRUPT_ID,
                            PayloadInterruptPriority::p7_max,
                            handleTimerIrq);
 }
 
 void bmboot::startPeriodicInterrupt()
 {
-    enableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
+    enableInterruptHandling(zynqmp::scugic::CNTPNS_INTERRUPT_ID);
 
     // configure timer & start it
     writeSysReg(CNTP_TVAL_EL0, timer_period_ticks);
@@ -68,7 +68,7 @@ void bmboot::stopPeriodicInterrupt()
 {
     writeSysReg(CNTP_CTL_EL0, 0);
 
-    disableInterruptHandling(mach::CNTPNS_IRQ_CHANNEL);
+    disableInterruptHandling(zynqmp::scugic::CNTPNS_INTERRUPT_ID);
 }
 
 void internal::handleTimerIrq()

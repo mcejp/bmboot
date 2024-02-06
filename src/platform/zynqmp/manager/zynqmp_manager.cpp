@@ -6,15 +6,12 @@
 #include "zynqmp.hpp"
 #include "zynqmp_manager.hpp"
 
-#include <cstring>
-
-#define IPI_BUF_BASE_APU            0xFF990400
-#define IPI_BUF_APU_TO_APU_REQ      IPI_BUF_BASE_APU
-#define IPI_BUF_APU_TO_APU_RESP     (IPI_BUF_BASE_APU + 0x20)
-#define IPI_BUF_SIZE                0x20
+#include <string.h>
 
 using namespace bmboot;
-using namespace bmboot::mach;
+using namespace bmboot::internal;
+using namespace zynqmp;
+using namespace zynqmp::ipipsu;
 
 static int getCpuIndex(DomainIndex domain_index)
 {
@@ -31,7 +28,7 @@ static int getCpuIndex(DomainIndex domain_index)
 
 // ************************************************************
 
-bool mach::isCoreInReset(int devmem_fd, DomainIndex domain_index) {
+bool zynqmp::isCoreInReset(int devmem_fd, DomainIndex domain_index) {
     Mmap base_0xFD1A0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD1A0000);
 
     if (!base_0xFD1A0000) {
@@ -45,7 +42,7 @@ bool mach::isCoreInReset(int devmem_fd, DomainIndex domain_index) {
 
 // ************************************************************
 
-std::optional<ErrorCode> mach::bootCore(int devmem_fd, DomainIndex domain_index, uintptr_t reset_address) {
+std::optional<ErrorCode> zynqmp::bootCore(int devmem_fd, DomainIndex domain_index, uintptr_t reset_address) {
     Mmap base_0xFD1A0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD1A0000);
     Mmap base_0xFD5C0000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFD5C0000);
 
@@ -80,12 +77,12 @@ std::optional<ErrorCode> mach::bootCore(int devmem_fd, DomainIndex domain_index,
 
 // ************************************************************
 
-std::optional<ErrorCode> mach::sendIpiMessage(int devmem_fd, DomainIndex domain_index, std::span<const uint8_t> message) {
+std::optional<ErrorCode> zynqmp::sendIpiMessage(int devmem_fd, DomainIndex domain_index, std::span<const uint8_t> message) {
     off_t message_buffer_base;
 
     // Mapping of IPI channels to base addresses can be found in UG1085, Table 13-3: IPI Channel and Message Buffer Default Associations
 
-    switch (getIpiChannelForCpu(getCpuIndex(domain_index)))
+    switch (internal::getIpiChannelForCpu(getCpuIndex(domain_index)))
     {
         case IpiChannel::ch0:
             message_buffer_base = 0xFF99'0400;
@@ -119,13 +116,13 @@ std::optional<ErrorCode> mach::sendIpiMessage(int devmem_fd, DomainIndex domain_
             return ErrorCode::hw_resource_unavailable;
     }
 
-    off_t irq_base = getIpiBaseAddress(IPI_SRC_BMBOOT_MANAGER);
+    off_t irq_base = getIpiBaseAddress(internal::IPI_SRC_BMBOOT_MANAGER);
 
     Mmap base_0xFF990000(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, 0xFF990000);
     Mmap irq_mmap(nullptr, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, devmem_fd, irq_base);
 
-    uint32_t message_mirror[IPI_BUF_SIZE / 4];
-    memcpy(message_mirror, message.data(), std::min<size_t>(message.size(), IPI_BUF_SIZE));
+    uint32_t message_mirror[BUF_SIZE / 4];
+    memcpy(message_mirror, message.data(), std::min<size_t>(message.size(), BUF_SIZE));
 
     // must be done with 32-bit access; memcpy will crash
     for (int i = 0; i < std::size(message_mirror); i++) {

@@ -4,7 +4,6 @@
 #include "monitor_internal.hpp"
 #include "platform_interrupt_controller.hpp"
 #include "zynqmp.hpp"
-#include "zynqmp_executor.hpp"
 
 // ************************************************************
 
@@ -15,28 +14,29 @@ enum {
 using namespace bmboot;
 using namespace bmboot::internal;
 using namespace zynqmp;
+using namespace zynqmp::scugic;
 
 // ************************************************************
 
 extern "C" void FIQInterrupt(void)
 {
-    auto iar = scugic::GICC->IAR;
+    auto iar = GICC->IAR;
     auto interrupt_id = (iar & arm::gicv2::GICC::IAR_INTERRUPT_ID_MASK);
 
-    auto my_ipi = mach::getIpiChannelForCpu(getCpuIndex());
+    auto my_ipi = getIpiChannelForCpu(getCpuIndex());
 
-    if (interrupt_id == mach::getInterruptIdForIpi(my_ipi)) {
-        auto ipi = mach::getIpi(my_ipi);
+    if (interrupt_id == getInterruptIdForIpi(my_ipi)) {
+        auto ipi = ipipsu::getIpi(my_ipi);
 
         // acknowledge IPI
         auto source_mask = ipi->ISR;
         ipi->ISR = source_mask;
 
         // acknowledge interrupt
-        scugic::GICC->EOIR = iar;
+        GICC->EOIR = iar;
 
         // IRQ triggered by APU?
-        if (source_mask & mach::getIpiPeerMask(mach::IPI_SRC_BMBOOT_MANAGER)) {
+        if (source_mask & getIpiPeerMask(internal::IPI_SRC_BMBOOT_MANAGER)) {
             platform::teardownEl1Interrupts();
 
             // reset monitor by jumping to entry point
@@ -48,7 +48,7 @@ extern "C" void FIQInterrupt(void)
     reportCrash(CrashingEntity::monitor, "Monitor FIQInterrupt", fault_address);
 
     // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
-    scugic::GICC->EOIR = iar;
+    GICC->EOIR = iar;
     for (;;) {}
 }
 
@@ -57,13 +57,13 @@ extern "C" void FIQInterrupt(void)
 // Should never arrive to EL3
 extern "C" void IRQInterrupt(void)
 {
-    auto iar = scugic::GICC->IAR;
+    auto iar = GICC->IAR;
 
     auto fault_address = iar; //get_ELR();
     reportCrash(CrashingEntity::monitor, "Monitor IRQInterrupt", fault_address);
 
     // Even if we're crashing, we acknowledge the interrupt to not upset the GIC which is shared by the entire CPU
-    scugic::GICC->EOIR = iar;
+    GICC->EOIR = iar;
     for (;;) {}
 }
 

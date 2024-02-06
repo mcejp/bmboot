@@ -4,7 +4,6 @@
 #include "executor_asm.hpp"
 #include "payload_runtime_internal.hpp"
 #include "zynqmp.hpp"
-#include "zynqmp_executor.hpp"
 
 // ************************************************************
 

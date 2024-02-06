@@ -447,7 +447,7 @@ DomainInstanceOrErrorCode IDomain::open(DomainIndex domain)
     // It is not without corner cases -- what if the CPU has been reset without clearing the DDR RAM?
     // So we check for core reset bit first, cookie second
 
-    if (mach::isCoreInReset(std::get<int>(devmem), domain))
+    if (zynqmp::isCoreInReset(std::get<int>(devmem), domain))
     {
         domain_general_state[domain] = DomainGeneralState::inReset;
     }
@@ -627,7 +627,7 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
     // flush the IPC region to DDR (since the SCU is not in effect yet and CPUn will come up with cold caches)
     __clear_cache(&m_ipc_block, (uint8_t*) &m_ipc_block + ranges.monitor_ipc_size);
 
-    mach::bootCore(std::get<int>(devmem), m_domain, ranges.monitor_address);
+    zynqmp::bootCore(std::get<int>(devmem), m_domain, ranges.monitor_address);
 
     // TODO: maybe we should only do this after state goes to ready
     domain_general_state[m_domain] = DomainGeneralState::monitorStarted;
@@ -656,7 +656,7 @@ MaybeError Domain::terminatePayload()
     // TODO: Clean up a bit; these values have no meaning, but if/when we have multiple different IPIs, we will use
     //       this buffer to signal which one is being invoked.
     uint8_t message[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-    mach::sendIpiMessage(std::get<int>(devmem), m_domain, message);
+    zynqmp::sendIpiMessage(std::get<int>(devmem), m_domain, message);
 
     return awaitMonitorStartup();
 }

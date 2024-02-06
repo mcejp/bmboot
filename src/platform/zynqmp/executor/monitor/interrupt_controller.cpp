@@ -7,14 +7,16 @@
 #include "executor.hpp"
 #include "platform_interrupt_controller.hpp"
 #include "zynqmp.hpp"
-#include "zynqmp_executor.hpp"
+
+// ************************************************************
 
 using namespace arm;
 using arm::armv8a::DAIF_F_MASK;
 using arm::armv8a::DAIF_I_MASK;
 using namespace bmboot::internal;
-using namespace bmboot::mach;
 using namespace bmboot::platform;
+using zynqmp::ipipsu::IpiChannel;
+using zynqmp::scugic::getInterruptIdForIpi;
 using zynqmp::scugic::GICC;
 using zynqmp::scugic::GICD;
 
@@ -22,7 +24,7 @@ static bool interrupt_routed_to_el1[(GIC_MAX_USER_INTERRUPT_ID + 1) - GIC_MIN_US
 
 // ************************************************************
 
-int bmboot::mach::getInterruptIdForIpi(IpiChannel ipi_channel)
+int zynqmp::scugic::getInterruptIdForIpi(IpiChannel ipi_channel)
 {
     // Mapping of IPI channels to interrupt IDs can be found in UG1085, Table 13-1: System Interrupts
     switch (ipi_channel)
@@ -166,7 +168,7 @@ void bmboot::platform::enableInterrupt(int interrupt_id)
 
 void bmboot::platform::teardownEl1Interrupts()
 {
-    platform::disableInterrupt(mach::CNTPNS_IRQ_CHANNEL);
+    platform::disableInterrupt(zynqmp::scugic::CNTPNS_INTERRUPT_ID);
 
     for (int int_id = GIC_MIN_USER_INTERRUPT_ID; int_id <= GIC_MAX_USER_INTERRUPT_ID; int_id++)
     {
