@@ -50,12 +50,21 @@ inline uint32_t getBuiltinTimerFrequency()
 
 //! Get the current value of the built-in (always running) timer.
 //!
+//! Implementations of this function typically include an Instruction Barrier (ISB), see e.g.
+//! https://github.com/qemu/u-boot/blob/c84a00a647057d83ecfb081ca03c4865e4c1c1be/arch/arm/cpu/armv8/generic_timer.c.
+//! This is to avoid misleading results due to out-of-order execution, particularly when using the timer to benchmark
+//! program runtime (example: https://stackoverflow.com/q/58586320).
+//! As the Cortex-A53 is an in-order architecture with limited prefetch/speculation capabilities, this should
+//! be less of a concern, but we err on the side of caution.
+//!
+//! In Armv8.6 and later, there is a "self-synchronizing" version of this register (CNTPCTSS_EL0) which can be used
+//! instead.
+//!
 //! \return Timer value
 inline uint64_t getBuiltinTimerValue()
 {
-    // NOTE: should perhaps use CNTPCTSS_EL0 & ISB; see D10.2.1 in AArch64 ARM
     uint64_t cntval;
-    asm volatile("mrs %0, CNTPCT_EL0" : "=r" (cntval));
+    asm volatile("isb; mrs %0, CNTPCT_EL0" : "=r" (cntval));
     return cntval;
 }
 
