@@ -216,14 +216,18 @@ else()
     target_link_libraries(bmctl PUBLIC bmboot_manager)
 
     # Testing
-    add_subdirectory("${LIBRARIES_HOME}/googletest-1.11.0" "${CMAKE_CURRENT_BINARY_DIR}/googletest")
+    if (DEFINED LIBRARIES_HOME)
+        add_subdirectory("${LIBRARIES_HOME}/googletest-1.11.0" "${CMAKE_CURRENT_BINARY_DIR}/googletest")
 
-    add_executable(bmtest
-            src/tests/tests.cpp
-            src/tools/bmtest.cpp
-            )
-    target_link_libraries(bmtest PUBLIC bmboot_manager GTest::gtest pthread dl)
-    target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-linux-aarch64.so.1 -Wl,-rpath,/my-lib)
+        add_executable(bmtest
+                src/tests/tests.cpp
+                src/tools/bmtest.cpp
+                )
+        target_link_libraries(bmtest PUBLIC bmboot_manager GTest::gtest pthread dl)
+        target_link_options(bmtest PUBLIC  -Wl,-dynamic-linker,/my-lib/ld-linux-aarch64.so.1 -Wl,-rpath,/my-lib)
+    else()
+        message(WARNING "LIBRARIES_HOME not provided, will not build tests")
+    endif()
 
     add_executable(console src/tools/console.cpp)
     target_link_libraries(console PUBLIC bmboot_manager)
