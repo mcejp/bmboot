@@ -144,6 +144,9 @@ elseif (BUILD_MONITOR)
     endforeach()
 
     add_bmboot_payload(payload_MemoryLatency src/benchmarks/MemoryLatency/MemoryLatency.c src/benchmarks/MemoryLatency/MemoryLatency_arm.s)
+    add_bmboot_payload(payload_fpga_latency
+            src/benchmarks/fpga_latency/fpga_latency.cpp
+            src/benchmarks/fpga_latency/fpga_latency.s)
 
     # -----------------------------------------------------------------------------------------------------------
 else()
