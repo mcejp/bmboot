@@ -6,7 +6,7 @@
 using BenchmarkFunc = std::function<void(int iterations)>;
 using std::chrono::duration;
 
-static duration<double, std::nano> doTest(BenchmarkFunc callback, char const* test_name, int iterations);
+static void doTest(BenchmarkFunc callback, char const* test_name, int iterations);
 
 // defined in fpga_latency.s
 extern "C" void ld32_fixed_address(uint32_t volatile* addr, size_t iterations);
@@ -20,34 +20,33 @@ int main()
 {
     bmboot::notifyPayloadStarted();
 
-    auto ld32 = doTest([](int iterations) {
+    doTest([](int iterations) {
         ld32_fixed_address(FPGA_REGISTER, iterations);
     }, "Read", 5'000'000);
 
-    auto ld32_dsb = doTest([](int iterations) {
+    // Barrier shouldn't make a difference, since this is already Device-type read
+    doTest([](int iterations) {
         ld32_dsb_fixed_address(FPGA_REGISTER, iterations);
     }, "Read w/ barrier", 5'000'000);
 
-    auto st32 = doTest([](int iterations) {
+    // The average access time should be less than the full bus round-trip, due to store buffering,
+    doTest([](int iterations) {
         st32_fixed_address(FPGA_REGISTER, iterations);
     }, "Write (pipelined)", 10'000'000);
 
-    auto st32_dsb = doTest([](int iterations) {
+    doTest([](int iterations) {
         st32_dsb_fixed_address(FPGA_REGISTER, iterations);
     }, "Write (w/ barrier)", 5'000'000);
 }
 
-static duration<double, std::nano> doTest(BenchmarkFunc callback, char const* test_name, int iterations)
+static void doTest(BenchmarkFunc callback, char const* test_name, int iterations)
 {
-    auto startCnt = bmboot::getBuiltinTimerValue();
-
+    auto start_cnt = bmboot::getBuiltinTimerValue();
     callback(iterations);
+    auto end_cnt = bmboot::getBuiltinTimerValue();
 
-    auto endCnt = bmboot::getBuiltinTimerValue();
-
-    auto ns = duration<double, std::nano>((double)(endCnt - startCnt) / iterations / (bmboot::getBuiltinTimerFrequency() / 1.0e9));
-
-    printf("%-20s %5.1f ns\n", test_name, ns.count());
-
-    return ns;
+    auto time_per_iter = duration<double, std::nano>((double)(end_cnt - start_cnt)
+                                                     / iterations
+                                                     / (bmboot::getBuiltinTimerFrequency() / 1.0e9));
+    printf("%-20s %5.1f ns\n", test_name, time_per_iter.count());
 }
