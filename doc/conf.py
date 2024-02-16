@@ -20,7 +20,7 @@ import os
 project = 'bmboot'
 copyright = '2023, CERN'
 author = 'Martin Cejp'
-version = os.getenv("CI_COMMIT_TAG", default=None)
+version = os.getenv("CI_COMMIT_TAG", default="")
 release = version
 
 
