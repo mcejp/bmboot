@@ -2,8 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 0.6 - 2024-02-16
+
+### Added
+
+- New microbenchmark for FPGA latency
+
+### Changed
+
+- Timer period is now expressed using the `std::chrono::microseconds` data type
+- A Xilinx BSP (board support package) is no longer necessary to compile Bmboot
+- GoogleTest dependency has been made optional
+
+### Fixed
+
+- `add_bmboot_payload` now correctly adds the linker option `-specs=nosys.specs`
 
 ## 0.5 - 2024-01-30
 

@@ -2,6 +2,10 @@
 
 This guide will list any breaking changes between versions. For a list of all changes, see CHANGELOG.md.
 
+## From 0.5 to 0.6
+
+- The `period` argument to `setupPeriodicInterrupt` has been changed from `int` to `std::chrono::microseconds`.
+
 ## From 0.4 to 0.5
 
 - It is now necessary to provide a configuration file at run time. See _Configuration_ section in the documentation.
