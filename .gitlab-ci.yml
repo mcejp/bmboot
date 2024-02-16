@@ -34,8 +34,6 @@ test:
   - pip install -U breathe sphinx sphinx_needs sphinx_rtd_theme sphinxcontrib.plantuml
   - doxygen Doxyfile
   - sphinx-build -b html doc public
-  rules:
-    - if: $CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH
 
 pages:
   stage: deploy
