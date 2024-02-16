@@ -20,6 +20,8 @@ pages:
   artifacts:
     paths:
     - public
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-
+#  rules:
+#    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  # Deploy docs only on tagged releases. Note that CI_COMMIT_TAG is used by doc/conf.py.
+  only:
+    - tags
