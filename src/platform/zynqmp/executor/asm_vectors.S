@@ -36,6 +36,7 @@
 *
 ******************************************************************************/
 
+#include "abi_defs.inc"
 #include "bspconfig.h"
 
 .org 0
@@ -269,9 +270,9 @@ _vector_table:
    	ldr	x16, =_boot                 /* 8-byte thunk */
    	br	x16
 
-    .word   0x6f626d42              /* magic number */
-    .byte   0x01                    /* ABI major version */
-    .byte   0x01                    /* ABI minor version */
+    .word   ABI_MAGIC_NUMBER        /* magic number */
+    .byte   ABI_MAJOR               /* ABI major version */
+    .byte   ABI_MINOR               /* ABI minor version */
     .hword  0x0000                  /* res0 */
 
     .dword  _vector_table           /* image load address */

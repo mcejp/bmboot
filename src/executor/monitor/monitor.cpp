@@ -2,6 +2,7 @@
 //! @brief  Implements the bmboot monitor
 //! @author Martin Cejp
 
+#include "abi_defs.inc"
 #include "armv8a.hpp"
 #include "bmboot_internal.hpp"
 #include "executor.hpp"
@@ -113,11 +114,7 @@ static Response validatePayload(void const* image, size_t image_size, uint32_t c
     PayloadImageHeader hdr;
     memcpy(&hdr, image, sizeof(hdr));
 
-    constexpr uint32_t MAGIC = 0x6f626d42;
-    constexpr uint8_t ABI_MAJOR = 0x01;
-    constexpr uint8_t ABI_MINOR = 0x01;
-
-    if (hdr.magic != MAGIC)
+    if (hdr.magic != ABI_MAGIC_NUMBER)
     {
         return Response::image_malformed;
     }
