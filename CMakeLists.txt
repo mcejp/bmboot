@@ -139,7 +139,15 @@ elseif (BUILD_MONITOR)
 
     add_bmboot_payload_library()
 
-    foreach(PAYLOAD access_violation adrian_irq_demo hello_world timer_demo exception_caught_demo message_queue)
+    foreach(PAYLOAD
+            access_violation
+            adrian_irq_demo
+            exception_caught_demo
+            hello_world
+            message_queue
+            pmu_demo
+            timer_demo
+            )
         add_bmboot_payload(payload_${PAYLOAD} src/payloads/${PAYLOAD}.cpp)
     endforeach()
 

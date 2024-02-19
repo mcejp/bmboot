@@ -38,6 +38,14 @@ Other interrupts
 .. doxygenenum:: bmboot::PayloadInterruptPriority
 
 
+Performance Monitor Unit (PMU)
+==============================
+
+.. doxygenfunction:: bmboot::startCycleCounter
+
+.. doxygenfunction:: bmboot::getCycleCounterValue
+
+
 Miscellaneous
 =============
 

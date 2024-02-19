@@ -55,6 +55,16 @@ void bmboot::setupPeriodicInterrupt(std::chrono::microseconds period_us, Interru
                            handleTimerIrq);
 }
 
+void bmboot::startCycleCounter()
+{
+    // Set Enable bit & clear count
+    writeSysReg(PMCR_EL0, readSysReg(PMCR_EL0) | (1<<0) | (1<<2));
+    // Set C bit (enable cycle counter)
+    writeSysReg(PMCNTENSET_EL0, readSysReg(PMCNTENSET_EL0) | (1<<31));
+
+    asm volatile("isb");
+}
+
 void bmboot::startPeriodicInterrupt()
 {
     enableInterruptHandling(zynqmp::scugic::CNTPNS_INTERRUPT_ID);

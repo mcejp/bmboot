@@ -68,6 +68,20 @@ inline uint64_t getBuiltinTimerValue()
     return cntval;
 }
 
+//! Get the current value of the cycle counter.
+//!
+//! The cycle counter must be manually started by @link bmboot::startCycleCounter @endlink.
+//! Otherwise, the call will fail.
+//!
+//! \return Cycle counter value
+inline uint64_t getCycleCounterValue()
+{
+    uint64_t cntval;
+    // See getBuiltinTimerValue for discussion of the ISB
+    asm volatile("isb; mrs %0, PMCCNTR_EL0" : "=r" (cntval));
+    return cntval;
+}
+
 //! Retrieve the argument provided when calling bmboot::IDomain::loadAndStartPayload
 //!
 //! \return Argument value
@@ -93,6 +107,9 @@ void notifyPayloadStarted();
 //! \param period_us Interrupt period in microseconds
 //! \param handler Funcion to be called
 void setupPeriodicInterrupt(std::chrono::microseconds period_us, InterruptHandler handler);
+
+//! Start the CPU cycle counter
+void startCycleCounter();
 
 //! Start the built-in periodic interrupt.
 //!
