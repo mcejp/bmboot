@@ -29,7 +29,7 @@ build:
     when: always
     expire_in: 24 months
 
-test:
+docs-test:
   stage: test
   needs: []
   script:
@@ -38,7 +38,7 @@ test:
   - doxygen Doxyfile
   - sphinx-build -b html doc public
 
-pages:
+docs-deploy:
   stage: deploy
   needs: []
   script:
