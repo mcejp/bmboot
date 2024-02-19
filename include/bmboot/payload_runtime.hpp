@@ -16,6 +16,12 @@
 namespace bmboot
 {
 
+struct AbiVersion
+{
+    uint8_t major;
+    uint8_t minor;
+};
+
 //! User interrupt priority.
 //!
 //! Higher numerical value corresponds to lower priority.
@@ -81,6 +87,11 @@ inline uint64_t getCycleCounterValue()
     asm volatile("isb; mrs %0, PMCCNTR_EL0" : "=r" (cntval));
     return cntval;
 }
+
+//! Get the ABI version of the monitor
+//!
+//! \return ABI version
+AbiVersion getMonitorAbiVersion();
 
 //! Retrieve the argument provided when calling bmboot::IDomain::loadAndStartPayload
 //!

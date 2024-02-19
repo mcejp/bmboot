@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Payloads can now use the ELF format (but must still be built for a fixed address)
-- New payload runtime functions `startCycleCounter`, `getCycleCounterValue`
+- New payload runtime functions `startCycleCounter`, `getCycleCounterValue`, `getMonitorAbiVersion`
 
 ## 0.6 - 2024-02-16
 

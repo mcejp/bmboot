@@ -1,3 +1,4 @@
+#include "abi_defs.inc"
 #include "armv8a.hpp"
 #include "bmboot.hpp"
 #include "executor.hpp"
@@ -70,6 +71,10 @@ void internal::handleSmc(Aarch64_Regs& saved_regs)
 {
     switch (saved_regs.regs[0])
     {
+        case SMC_GET_ABI_VERSION:
+            saved_regs.regs[0] = (ABI_MAJOR << 8) | ABI_MINOR;
+            break;
+
         case SMC_NOTIFY_PAYLOAD_STARTED:
             reportPayloadStarted();
             break;

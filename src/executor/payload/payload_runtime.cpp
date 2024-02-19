@@ -28,6 +28,14 @@ void bmboot::enableInterruptHandling(int interruptId)
     smc(SMC_ZYNQMP_GIC_IRQ_ENABLE, interruptId);
 }
 
+AbiVersion bmboot::getMonitorAbiVersion()
+{
+    int major_minor = smc(SMC_GET_ABI_VERSION);
+
+    return AbiVersion {.major = (major_minor >> 8) & 0xff,
+                       .minor = major_minor & 0xff};
+}
+
 void bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler)
 {
     if (interruptId < GIC_MIN_USER_INTERRUPT_ID || interruptId > GIC_MAX_USER_INTERRUPT_ID)
