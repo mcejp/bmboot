@@ -1,0 +1,3 @@
+[submodule "elfload"]
+	path = elfload
+	url = https://github.com/erincandescent/elfload.git

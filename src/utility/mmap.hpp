@@ -34,6 +34,11 @@ namespace bmboot
             return this->base;
         }
 
+        size_t size() const
+        {
+            return len;
+        }
+
         void unmap()
         {
             if (this->base)

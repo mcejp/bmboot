@@ -7,6 +7,9 @@ build:
 
   image: gitlab-registry.cern.ch/doaromin/fgc4-ci:latest
 
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+
   script:
     - cmake --version
 

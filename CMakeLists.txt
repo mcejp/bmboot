@@ -182,6 +182,8 @@ else()
         list(APPEND MONITOR_ZYNQMP_HPP_ALL ${MONITOR_ZYNQMP_HPP})
     endforeach()
 
+    add_subdirectory(elfload)
+
     add_library(bmboot_manager STATIC
             include/bmboot.hpp
             include/bmboot/domain.hpp
@@ -212,6 +214,8 @@ else()
 #    target_compile_features(bmboot_manager cpp20)
 #    set_property(TARGET bmboot_manager PROPERTY CXX_STANDARD 20)
     target_compile_features(bmboot_manager PUBLIC cxx_std_20)
+
+    target_link_libraries(bmboot_manager PUBLIC elfload)
 
     add_executable(bmctl
             src/tools/bmctl.cpp

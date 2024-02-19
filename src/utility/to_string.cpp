@@ -63,11 +63,12 @@ std::string bmboot::toString(ErrorCode err) {
     switch (err) {
         case ErrorCode::bad_domain_state: return "bad domain state";
         case ErrorCode::configuration_file_error: return "/etc/bmboot.conf not found or malformed (see docs)";
-        case ErrorCode::hw_resource_unavailable: return "hardware resource unavailable";
+        case ErrorCode::hw_resource_unavailable: return "a requested hardware resource is not available";
         case ErrorCode::payload_abi_incompatible: return "payload was built against an incompatible ABI version";
         case ErrorCode::payload_crashed_during_startup: return "payload crashed during startup";
         case ErrorCode::payload_image_malformed: return "provided file is not a valid Bmboot payload";
         case ErrorCode::payload_start_timed_out: return "payload startup timed out";
+        case ErrorCode::program_too_large: return "program too large, or wrong load address";
         case ErrorCode::monitor_start_timed_out: return "monitor startup timed out";
         case ErrorCode::unknown_error: return "unknown error";
         default: return "error " + std::to_string((int) err);

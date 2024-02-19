@@ -70,6 +70,8 @@ public:
     MaybeError loadAndStartPayload(std::span<uint8_t const> payload_binary,
                                    uint32_t payload_crc32,
                                    uintptr_t payload_argument) final;
+    MaybeError loadElfPayload(std::span<uint8_t const> payload_binary,
+                              uintptr_t payload_argument) final;
     int getchar() final;
     CrashInfo getCrashInfo() final;
     DomainIndex getIndex() const final { return m_domain; }
@@ -404,6 +406,115 @@ MaybeError Domain::loadAndStartPayload(std::span<uint8_t const> payload_binary,
                           payload_binary.size(),
                           payload_crc32,
                           payload_argument);
+}
+
+// ************************************************************
+
+extern "C" {
+#include "../../elfload/elfload.h"
+}
+
+MaybeError Domain::loadElfPayload(std::span<uint8_t const> payload_binary, uintptr_t payload_argument)
+{
+    constexpr auto elf_debug = false;
+
+    // First, ensure we are in 'ready' state
+    if (getState() != DomainState::monitor_ready)
+    {
+        return ErrorCode::bad_domain_state;
+    }
+
+    auto& ranges = getPhysicalMemoryRanges();
+    auto devmem = get_devmem_handle();
+
+    if (std::holds_alternative<ErrorCode>(devmem))
+    {
+        return std::get<ErrorCode>(devmem);
+    }
+
+    Mmap code_area(nullptr,
+                   ranges.payload_size,
+                   PROT_READ | PROT_WRITE,
+                   MAP_SHARED,
+                   std::get<int>(devmem),
+                   ranges.payload_address);
+
+    if (!code_area)
+    {
+        return ErrorCode::mmap_failed;
+    }
+
+    struct MyElfCtx : el_ctx
+    {
+        std::span<uint8_t const> payload_binary;
+        PhysicalMemoryRanges const& ranges;
+        Mmap& code_area;
+    };
+
+//    el_ctx ctx;
+
+    MyElfCtx ctx = {
+            .payload_binary = payload_binary,
+            .ranges = ranges,
+            .code_area = code_area,
+    };
+
+    ctx.pread = [](el_ctx *ctx_in, void *dest, size_t nb, size_t offset) -> bool
+    {
+        auto& ctx = *(MyElfCtx*) ctx_in;
+
+        if constexpr (elf_debug)
+        {
+            printf("pread: %08lX bytes @ %08lX in file (%p VM)\n", nb, offset, dest);
+        }
+
+        if (offset + nb < ctx.payload_binary.size())
+        {
+            memcpy(dest, &ctx.payload_binary[offset], nb);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    };
+
+    el_init(&ctx);
+
+    if constexpr (elf_debug)
+    {
+        printf("paddr=%08lX, vaddr=%08lX, memsz=%08lX, align=%lu, entry=%08lX\n",
+               ctx.base_load_paddr, ctx.base_load_vaddr, ctx.memsz, ctx.align, ctx.ehdr.e_entry);
+    }
+
+    auto err = el_load(&ctx, [](el_ctx *ctx_in, Elf_Addr phys, Elf_Addr virt, Elf_Addr size) -> void*
+    {
+        auto& ctx = *(MyElfCtx*) ctx_in;
+
+        if constexpr (elf_debug) { printf("alloc request: %08lX bytes @ %08lX phys %08lX virt\n", size, phys, virt); }
+
+        if (phys < (uintptr_t) ctx.ranges.payload_address ||
+            phys + size > ctx.ranges.payload_address + ctx.ranges.payload_size)
+        {
+            fprintf(stderr, "bmboot: ELF: requested physical memory allocation [0x%010lX .. 0x%010lX]\n"
+                            "             is out of the range for this domain: [0x%010lX .. 0x%010lX]\n",
+                    phys, phys + size, ctx.ranges.payload_address, ctx.ranges.payload_address + ctx.ranges.payload_size);
+            return nullptr;
+        }
+
+        return (uint8_t *) ctx.code_area.data() + phys - ctx.ranges.payload_address;
+    });
+
+    if (err)
+    {
+        return ErrorCode::program_too_large;
+    }
+
+    __clear_cache(code_area.data(), (uint8_t*) code_area.data() + code_area.size());
+
+    code_area.unmap();
+
+    return startPayloadAt(ctx.ehdr.e_entry + ctx.base_load_paddr, 0, 0, payload_argument);
 }
 
 // ************************************************************

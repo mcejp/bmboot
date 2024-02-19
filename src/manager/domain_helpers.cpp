@@ -108,9 +108,15 @@ void bmboot::loadPayloadFromFileOrThrow(IDomain& domain, std::filesystem::path c
     std::vector<uint8_t> program((std::istreambuf_iterator<char>(file)),
                                  std::istreambuf_iterator<char>());
 
-    auto crc = crc32(0, program.data(), program.size());
-
-    throwOnError(domain.loadAndStartPayload(program, crc, 123), "loadAndStartPayload");
+    if (path.extension() == ".elf")
+    {
+        throwOnError(domain.loadElfPayload(program, 1234), "loadElfPayload");
+    }
+    else
+    {
+        auto crc = crc32(0, program.data(), program.size());
+        throwOnError(domain.loadAndStartPayload(program, crc, 123), "loadAndStartPayload");
+    }
 }
 
 void bmboot::startConsoleThread(IDomain& domain)

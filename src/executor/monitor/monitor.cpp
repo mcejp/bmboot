@@ -102,7 +102,7 @@ static_assert(sizeof(PayloadImageHeader) == 32);  // Not that the exact size mat
 
 static Response validatePayload(void const* image, size_t image_size, uint32_t crc_expected)
 {
-    // Validate CRC-32
+    // Validate CRC-32 (if image_size=0, as is the case for ELF, the result will also be 0, so the check passes)
     auto crc_gotten = crc32(0, image, image_size);
 
     if (crc_gotten != crc_expected)
