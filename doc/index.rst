@@ -19,5 +19,4 @@ Bmboot docs
    api-base
    api-manager
    api-payload
-   api-message-queue
    literature

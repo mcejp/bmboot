@@ -35,7 +35,6 @@ function(add_bmboot_payload_library)
             src/platform/zynqmp/executor/sleep.cpp
             src/platform/zynqmp/executor/translation_table.S
             src/platform/zynqmp/executor/xil-crt0.S
-            src/utility/message_queue.cpp
             )
 
     target_compile_definitions(${TARGET} PUBLIC __bmboot__=1)
@@ -144,7 +143,6 @@ elseif (BUILD_MONITOR)
             adrian_irq_demo
             exception_caught_demo
             hello_world
-            message_queue
             pmu_demo
             timer_demo
             )
@@ -202,7 +200,6 @@ else()
             src/manager/domain_helpers.cpp
             src/platform/zynqmp/manager/zynqmp_manager.cpp
             src/utility/crc32.c
-            src/utility/message_queue.cpp
             src/utility/to_string.cpp
 
             ${MONITOR_ZYNQMP_HPP_ALL}
@@ -250,12 +247,7 @@ else()
     add_executable(MemoryLatency src/benchmarks/MemoryLatency/MemoryLatency.c src/benchmarks/MemoryLatency/MemoryLatency_arm.s)
     target_link_libraries(MemoryLatency PUBLIC m)
 
-    add_executable(message_queue_demo
-            src/tools/message_queue_demo.cpp
-            )
-    target_link_libraries(message_queue_demo PUBLIC bmboot_manager)
-
-    foreach(TOOL bmctl console MemoryLatency message_queue_demo)
+    foreach(TOOL bmctl console MemoryLatency)
         # Make sure bmctl is linked fully statically
         # This is only a temporary workaround for the discrepancy between library versions expected by our compiler
         # and available on the target OS (PetaLinux 2019).
