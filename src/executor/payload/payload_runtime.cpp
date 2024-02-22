@@ -140,3 +140,8 @@ extern "C" void bmNotifyPayloadStarted()
 {
     notifyPayloadStarted();
 }
+
+extern "C" void bmStartCycleCounter()
+{
+    startCycleCounter();
+}
