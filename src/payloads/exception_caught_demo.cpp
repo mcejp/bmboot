@@ -15,6 +15,4 @@ int main(int argc, char** argv)
       printf("Caught exception: %s.\n", e.what());
     }
     printf("Application still responsive after exception handling.\n");
-
-    for (;;) {}
 }

@@ -13,6 +13,4 @@ int main(int argc, char** argv)
            (void*) &_vector_table,
            bmboot::getPayloadArgument(),
            abi_version.major, abi_version.minor);
-
-    for (;;) {}
 }

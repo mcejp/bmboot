@@ -16,4 +16,10 @@ namespace arm::armv8a
     static constexpr inline uint32_t DAIF_I_MASK =  (1<<7);
     static constexpr inline uint32_t DAIF_A_MASK =  (1<<8);
     static constexpr inline uint32_t DAIF_D_MASK =  (1<<9);
+
+    inline void waitForInterrupt()
+    {
+        // Ensure all memory accesses have finished & put CPU core to sleep
+        __asm__ __volatile__("dsb sy; wfi");
+    }
 }

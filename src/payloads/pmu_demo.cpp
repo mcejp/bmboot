@@ -21,6 +21,4 @@ int main(int argc, char** argv)
     auto after = bmboot::getCycleCounterValue();
 
     printf("before: %ld, after: %ld, delta: %ld\n", before, after, after - before);
-
-    for (;;) {}
 }
