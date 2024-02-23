@@ -1,0 +1,79 @@
+\section{CPU configuration and startup procedures}
+
+This section details the configuration of the CPU cores and the exact steps taken when starting up.
+
+\subsection{Monitor startup}
+
+The first part of the procedure is carried out by the manager.
+
+\begin{enumerate}
+    \item The appropriate monitor binary is selected based on the CPU core number (recall that bare-metal code is not relocatable and each core uses a different memory range)
+    \item The binary is copied to the corresponding memory location
+    \item The Bmboot signature value is written (see subsection~\ref{subsec:executor-fsm})
+    \item The primary memory structure for manager-executor communication (IPC block) is initialized
+    \item All memory regions affected in the previous steps are flushed to main memory
+    \item The \texttt{RVBARADDR} registers are set to the starting code address
+    \item The \texttt{RST\_FPD\_APU} register is used to clear the power-on reset state of the CPU core and begin code execution in EL3
+    \item The monitor initializes and sets its reported state (\texttt{ipc\_block.executor\_to\_manager. state}) to \texttt{monitor\_ready}. This concludes the procedure.
+\end{enumerate}
+
+\subsection{Payload startup}
+
+Once the monitor is ready, the manager can request to start a payload. The payload expects to execute in EL1 from the start, which is reflected in the following procedure, derived from~\cite{arm-baremetal} and implemented in \textit{monitor\_asm.S}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{rlrp{9cm}}\toprule
+  \textbf{Bit(s)} & \textbf{Name} & \textbf{Assigned value} & \textbf{Explanation}\\\midrule
+    0 & NS & \textbf{1} & EL1 is in Non-secure state. It might not matter much, but it is what the Xilinx SDK expects. \\
+    1 & IRQ & \textbf{0} & IRQs are \textit{not} intercepted by EL3. While executing in EL3, IRQs will be ignored because we keep the \texttt{I} flag set. When executing on a lower level, they are routed correspondingly (in our case to EL1). \\
+    2 & FIQ & \textbf{1} & FIQs are always taken to EL3. \\
+    3 & EA & \textbf{1} & External Aborts and SErrors are taken to EL3. \\
+    7 & SMD & \textbf{0} & \texttt{SMC} instruction is enabled. \\
+    8 & HCE & \textbf{0} & \texttt{HVC} instruction is disabled. \\
+    9 & SIF & \textbf{0} & Allow execution of code from Non-secure memory even in Secure mode. \\
+    10 & RW & \textbf{1} & EL2 is AArch64 and lower levels are determined by EL2 configuration. \\\bottomrule
+  \end{tabular}
+
+  \caption{Bit assignment in the \texttt{SCR\_EL3} register. The register contains additional bits which we consider uninteresting and they are set to zero.}
+  \label{tab:scr-el3}
+\end{table}
+
+\begin{enumerate}
+    \item \texttt{SCR\_EL3} (Secure Configuration Register), which controls several aspects of the relationship between EL3 and EL1, is updated with the values in Table~\ref{tab:scr-el3}.\footnote{This register is initially configured in \textit{boot.S} and in principle, it could be programmed with the necessary values from the beginning.}
+    \item \texttt{HCR\_EL2} is set to all-zero, save for bit 31 (\texttt{RW}) to indicate AArch64 mode for EL1. \texttt{HCR\_EL2} can be thought of as the EL2 analog of \texttt{SCR\_EL3}, in that it controls the relationship to lower ELs.
+    \item \texttt{SCTLR\_EL1} is set to \texttt{0x30C50838}, which is the default reset value. Payload start-up code will reconfigure this register once more.
+    \item \texttt{SPSR\_EL3} (Saved Program Status Register) is set to \texttt{0b00101}, indicating \textit{EL1 with dedicated stack pointer} (EL1h)
+    \item \texttt{ELR\_EL3} (Exception Link Register) is set to the payload's entry point address
+    \item An \texttt{ERET} instruction is executed to perform the transition to EL1, jumping to the address specified in \texttt{ELR\_EL3}.
+\end{enumerate}
+
+After this, the payload begins executing. The very first code executed is that in \textit{asm\_vectors.S}, but the main body of initialization can be found in \textit{boot.S} and subsequently \textit{xil-ctr0.S}, before finally branching to the user-defined \texttt{main} function.
+
+
+\subsection{Architectural timer}
+
+Each core of the Cortex-A53 CPU contains a private timer/counter. The pitfall lies in the fact that frequency is configurable at system design time (in Vivado).
+
+\begin{itemize}
+    \item When generating the XSA file, psu\_init.c will contain initialization of a control register called \texttt{TIMESTAMP\_REF\_CTRL}. The initialization value is presumably derived from the user-specified desired timer frequency and from the system clocking information (reference freq. coming from the crystal, or something like that)
+    \item When generating the BSP in Vitis, \textit{a53/xparameters.h} defines the constant \\ \texttt{XPAR\_PSU\_CORTEXA53\_0\_TIMESTAMP\_CLK\_FREQ}, indicating the frequency in Hz
+    \item BSP default \textit{boot.S} places the value of this constant into \texttt{CNTFRQ\_EL0}, so that software can always read it from there instead of having to derive it based on \texttt{TIMESTAMP\_REF\_CTRL}
+\end{itemize}
+
+Note: \texttt{TIMESTAMP\_REF\_CTRL} is SoC-level, but the \texttt{CNTFRQ\_EL0} register is private to each core.
+
+This is not really a problem for true bare-metal applications which are fixed to a specific board, but when compiling the Bmboot monitor, it is undesirable to fix the timer frequency inside the compiled code. For detecting it at runtime, we have a number of options:
+
+\begin{enumerate}[label=(\alph*)]
+    \item Try to reconstruct the frequency on bare metal by reading \texttt{TIMESTAMP\_REF\_CTRL}
+    \item Extract the value on Linux (Linux knows for sure: \texttt{arch\_timer\_rate} in \textit{arm\_arch\_timer.c}; but is there any way to extract this value?) and pass it to the monitor when starting it. The monitor will then put this into \texttt{CNTFRQ\_EL0}.
+    \item Require the user to provide a ``board specification file'' at runtime where Bmctl can read the frequency and pass it on as in option 2. This could be also used to specify the CPU indexes.
+\end{enumerate}
+
+Examples:
+
+\begin{itemize}
+    \item \url{https://github.com/Xilinx/embeddedsw/blob/master/lib/sw\_apps/zynqmp\_fsbl/misc/zcu102/psu\_init.c}
+    \item \url{https://github.com/Xilinx/embeddedsw/blob/master/lib/sw\_apps/zynqmp\_fsbl/misc/zcu102/a53/xparameters.h}
+\end{itemize}

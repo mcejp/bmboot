@@ -1,0 +1,54 @@
+\section{Executable format}
+
+Bmboot payloads can be distributed either in the industry-standard ELF format, or as \textit{flat binaries} with a custom header.
+
+The ELF format has certain advantages:
+
+\begin{itemize}
+    \item Debug information may be included in binary
+    \item Metadata for FGCD may be included in binary
+    \item De-facto standard format
+    \item Support for relocation information
+    \begin{itemize}
+        \item More flexibility for memory organization
+        \item The same binary could be loaded on any core
+    \end{itemize}
+\end{itemize}
+
+One of the strongest motivators for use of this format was the desire to build relocatable binaries. When exploring this possibility, some obstacles have been encountered:
+
+\begin{itemize}
+    \item Emission of relocation information for executable programs (as opposed to shared objects) is somewhat niche and requires a special linker flag (\texttt{-Wl,-q})
+    \begin{itemize}
+        \item Not clear if this might interfere with optimizations like stripping of unneeded symbols
+    \end{itemize}
+    \item According to the RockBox Wiki, there was some issue with the linkers on ARM. Though it might be just AArch32, or not relevant in our use case. \url{https://www.rockbox.org/wiki/BFLT}
+\end{itemize}
+
+As a result, relocation is not supported in the current implementation.
+
+
+\subsection{Payload image format}
+
+When a payload is stored as a flat binary, the file is loaded into memory as-is, beginning at a predetermined address, and code execution starts from this same address.
+
+The binary has a 32-byte header, whose main purpose is to encode the payload's expectations in regard to its execution environment. Most importantly, it encodes the ABI\footnote{Application Binary Interface} version, which consists of a \textit{major} part and a \textit{minor} part. The major version must match exactly between the monitor and the payload. The minor version of the monitor must be greater or equal to that required by the payload.
+
+The first 8 bytes of the header are reserved for a snippet of machine code to ``jump over'' the rest of the header. This way, the binary is still executable. The header is described by the following data structure:
+
+\begin{verbatim}
+struct PayloadImageHeader
+{
+    uint8_t  thunk[8];          // assembly code to skip over header
+
+    uint32_t magic;             // magic value 0x6f626d42 ('Bmbo')
+    uint8_t  abi_major;         // ABI major version
+    uint8_t  abi_minor;         // ABI minor version
+    uint8_t  res0[2];           // reserved
+
+    uint64_t load_address;      // program load address
+    uint64_t program_size;      // program size
+};
+\end{verbatim}
+
+The header is present also when using the ELF format. In this case, it is not at the beginning of the file, but must be loaded at the beginning of the payload memory region. For the compilation process, this makes no difference -- the header is simply considered part of the executable code.

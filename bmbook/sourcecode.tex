@@ -1,0 +1,29 @@
+\section{Source code structure and conventions}
+
+\subsection{Approach to portability}
+
+Although Bmboot currently supports only one hardware platform, it is architected with a degree of portability in mind. The approach is illustrated by the implementation of the interrupt controller driver in the monitor.
+
+The interface of the driver is defined in a file named\\
+\texttt{platform\_interrupt\_controller.hpp}, \\
+which is placed in the common part of the source tree. On the other hand, the path to the ZynqMP-specific implementation is\\
+\texttt{platform/zynqmp/executor/monitor/interrupt\_controller.cpp}. \\
+If another platform were to be supported, it would need to provide its own implementation of the interface, but reuse the same header.
+
+The platform-agnostic part of the source code still makes strong assumptions about the ARMv8-A architecture. Porting Bmboot to another CPU architecture would require a thorough refactoring.
+
+The author suggests referring to the Porting Guide of the Trusted Firmware-A project \cite{tfa-porting-guide} for an example of a more complete and well-thought-out approach.
+
+\subsection{Namespaces}
+
+\begin{itemize}
+    \item \texttt{bmboot}
+    \item \texttt{bmboot::internal}
+    \item \texttt{bmboot::platform}
+\end{itemize}
+
+\subsection{Directories}
+
+\begin{itemize}
+    \item header files starting with \texttt{platform\_} declare interfaces (functions and structures) to be implemented by platform-specific code
+\end{itemize}

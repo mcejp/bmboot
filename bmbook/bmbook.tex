@@ -1,0 +1,52 @@
+\documentclass{cernatsnote}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{placeins}
+
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[parfill]{parskip}
+\usepackage{siunitx}
+\usepackage{stfloats}
+
+\title{Technical design of the Bmboot monitor}
+\author{
+	Martin Cejp \; \\		
+	CERN, CH-1211 Geneva, Switzerland
+}
+\email{martin.cejp@cern.ch}
+\date{Version XX, \today}
+\documentlabel{\href{https://edms.cern.ch/document/3028102}{EDMS 3028102}}
+\keywords{{\tt real-time control, bare-metal, Cortex-A53, AArch64}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document describes the detailed design of Bmboot, a bare-metal privileged monitor for the Zynq UltraScale+ MPSoC, which incorporates a Cortex-A53 CPU, itself an implementation of the ARMv8-A architecture.
+
+This document accompanies the user-facing Bmboot documentation available at \url{https://bmboot.docs.cern.ch}. It is primarily aimed at those needing to maintain, extend, or debug Bmboot.
+\end{abstract}
+\\ \\ \\ 
+
+\begingroup
+\color{black}
+\tableofcontents
+\endgroup
+
+\pagebreak
+
+\input{intro-and-hardware}	\clearpage
+\input{architecture}	\clearpage
+\input{core-settings}	\clearpage
+\input{interrupts}	\clearpage
+\input{executable-formats}	\clearpage
+\input{sourcecode}	\clearpage
+
+\input{glossary} \clearpage
+
+
+\bibliography{references}
+\bibliographystyle{plain}
+
+\end{document}

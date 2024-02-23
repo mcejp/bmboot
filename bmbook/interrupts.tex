@@ -1,0 +1,179 @@
+\newcommand{\ELRELn}{\texttt{ELR\_EL\textit{n}}}
+\newcommand{\SPSRELn}{\texttt{SPSR\_EL\textit{n}}}
+
+\section{Exceptions and interrupts}
+
+AArch64 CPUs implement 4 types of exceptions:
+
+\begin{enumerate}
+  \item synchronous exception
+  \item interrupt request (IRQ)
+  \item fast interrupt request (FIQ)
+  \item system error (SError)
+\end{enumerate}
+
+Generally speaking, a synchronous exception is triggered when the program tries to perform either an invalid,
+or somehow ``special'' operation.
+In the context of Bmboot, the former case would be an error in the payload, such as invalid memory access,
+and the latter could be an SMC. (Secure Monitor Call -- see subsection~\ref{syscall-instructions})
+
+IRQ and FIQ are triggered by external sources -- mostly hardware peripherals.
+One important exception is the inter-processor interrupt (IPI), which is sent from one CPU core to another.
+In Bmboot this is used to abort the running payload and return control to the monitor.
+This would be normally done if the payload crashes or hangs, or if the application needs to load another payload.
+
+An exception can be \textit{taken to} either the current or higher EL, and the handler can return to the same or lower EL. An exception being taken to a higher EL means that the CPU core switches to this EL before the corresponding exception handler begins executing. Under no circumstances do exceptions cause a transition to a lower EL (see also \cite{arm-arm}, chapter D1.10). Whenever in doubt, remember that higher ELs are considered privileged and taking an exception to a \textit{lower} EL would leak register contents, potentially revealing sensitive information to an unprivileged application.
+
+\subsection{Relevant exception sources}
+
+See Table~\ref{tab:int-sources}.
+
+\begin{table}[b]
+  \centering
+  \begin{tabular}{lccp{6.2cm}}\toprule
+  \textbf{Exception source} & \textbf{Exc. type} & \textbf{Handled in} & \textbf{Comment} \\\midrule
+  EL1 call to EL3 (\texttt{SMC}) & Sync & EL3 & Used to implement monitor services \\
+  Fault in monitor & Sync & EL3 & Fatal error in the monitor \\
+  Fault in payload & Sync & EL1 & Caught in EL1, then escalated to EL3 via \texttt{SMC} \\
+  External GPIO & IRQ & EL1 \\
+  FPGA peripheral & IRQ & EL1 \\
+  SoC peripheral & IRQ & EL1 & Example: built-in timers \\
+  Inter-processor interrupt & FIQ & EL3 & Used to interrupt payload execution \\\bottomrule
+  \end{tabular}
+
+  \caption{Relevant interrupt sources}
+  \label{tab:int-sources}
+\end{table}
+
+\subsection{Hardware resources}
+% \label{semanticsection}
+
+The SoC includes a GIC-400 interrupt controller~\cite{gic-400-trm} for the Cortex-A53 CPU.
+This controller abides by the GICv2 specification~\cite{gic2-spec}, including the optional Security Extensions.
+
+\subsubsection{Assignment of interrupts to groups and exception levels}
+\label{subsect:interrupt-groups}
+
+A combination of features in the CPU allows us to selectively route some interrupts to EL3 and others directly to EL1.
+The GIC has a concept of \textit{interrupt groups} (Group 0 and Group 1); each interrupt can be routed to either of these.
+Next, a configuration bit gives control over how these are delivered to the CPU:
+Group 1 interrupts always signal an IRQ, but Group 0 interrupts can be configured to either signal an IRQ or a FIQ.
+In the CPU, we use the FIQ bit in \texttt{SCR\_EL3} (see Table~\ref{tab:scr-el3}) to bring FIQs to EL3.
+
+This setup considerably simplifies the software implementation; in principle, it should also be possible to receive all interrupts in EL3, acknowledge them there, and then invoke an EL1 handler in the payload (using the \texttt{eret} instruction with a carefully prepared environment). The EL1 handler would then need to signal back to the monitor that it has completed the interrupt processing so that the monitor would restore the previous EL1 environment and resume execution of the payload. With IRQs delivered directly to the EL1 exception handler, this is not a concern.
+
+Every interrupt gets assigned an 8-bit \textit{priority value} where a lower value indicates higher priority. In case of the GIC-400, only 16 priority levels are implemented. The priority is determined by the upper 4 bits of the 8-bit value.
+
+\subsection{Exception handling}
+
+When an exception is taken, the CPU jumps to one of 16 different handlers, depending on the exception type and the originating environment.
+
+First, the CPU determines the EL which should handle the exception. Each EL has its own set of exception vectors defined by the respective Vector Base Address Register (\texttt{VBAR\_EL\textit{n}}). An offset is added to this base address depending on the originating EL and the type of the exception. Bmboot implements only the relevant subset of all the possible exception handlers -- see Table~\ref{tab:exc-handlers}. For historical reasons, this subset is shared between the monitor and the payload runtime, even though some of the possible combinations never arise. For example, a FIQ or SError will never be delivered to the payload due to the settings in \texttt{SCR\_EL3} (refer to Table~\ref{tab:scr-el3}).
+
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lcccc}\toprule
+  \textbf{Taken from} & \textbf{Syn.} & \textbf{IRQ} & \textbf{FIQ} & \textbf{SErr.} \\\midrule
+  Same EL with \texttt{SP\_EL0} & -- & -- & -- & -- \\
+  Same EL with \texttt{SP\_EL\textit{x}} & 0x200 & 0x280 & 0x300 & 0x380 \\
+  Lower EL in AArch64 & 0x400 & 0x480 & 0x500 & 0x580 \\
+  Lower EL in AArch32 & -- & -- & -- & -- \\\bottomrule
+  \end{tabular}
+
+  \caption{Overview of exception handlers and their offsets from vector base address}
+  \label{tab:exc-handlers}
+\end{table}
+
+The handler for a synchronous interrupt saves all general-purpose registers (x0 through x30), as well as \texttt{SPSR} and \texttt{ELR}. This is so that in case of a fault exception, these can be copied into a core dump.
+
+For IRQ, FIQ and SError handlers, only those registers defined by the ABI as \textit{caller-saved} are backed up. The rationale is that the assembly code eventually branches into a C/C++ handler, which, being compliant with the ABI, will automatically save all \textit{callee-saved} (notice the subtle difference) registers. The \texttt{SPSR} and \texttt{ELR} only need to be saved when interrupt preemption is enabled (see subsection~\ref{sec:interrupt-preemption}). In that case, it is the responsibility of the handler to back these registers up before re-enabling interrupt delivery, and restore them when the handler finishes its work.
+
+\subsection{Interrupt preemption \label{sec:interrupt-preemption}}
+
+Interrupt preemption, or \textit{interrupt nesting}, is required in applications which execute multiple `tasks' of different priority.
+Setting up the execution environment requires extra steps on the GIC and CPU levels.
+
+On the GIC side, preemption is governed by the configured interrupt priority. However, only the \textit{n} upper bits of the priority value are taken into consideration for the purposes of preemption. The value of \textit{n} is controlled by the \textit{Binary Point Register}, \texttt{GICC\_BPR}. These are actually 2 registers, one for Secure mode and one for Non-secure (NS) mode. Since in Bmboot, interrupt preemption is only used for application-level interrupts, it is important to configure the NS version of this register.
+
+\subsubsection{Voluntary preemption}
+
+Before branching to the interrupt handler, the CPU will back up the processor status word and the program counter into a pair of system registers, \SPSRELn and \ELRELn. The \texttt{I} flag is then set (by hardware) to suppress (\textit{mask}) further interrupts. To allow interrupt nesting, the program must therefore take the following steps inside the interrupt handler:
+
+\begin{enumerate}
+    \item Start by reading the Interrupt Acknowledge Register, \texttt{GICC\_IAR}, to acknowledge the pending interrupt and clear the IRQ signal coming from GIC to CPU
+    \item Save the values of \SPSRELn and \ELRELn
+    \item Clear the \texttt{I} flag
+    \item Handle the interrupt as usual -- during this stage the handler might be interrupted by a higher-priority interrupt
+    \item Set the \texttt{I} flag
+    \item Restore the values of \SPSRELn and \ELRELn
+\end{enumerate}
+
+The GIC keeps a track of the interrupts being currently processed (which might be multiple nested interrupts). While a given interrupt is being processed, it will not be delivered to the CPU again, until its completion is signalled through the End of Interrupt Register, \texttt{GICC\_EOIR}.
+
+\subsubsection{Forced preemption}
+
+Besides the mechanism described above, application interrupts will always be preempted by interrupts targeting the monitor. Recall that monitor interrupts are routed to the FIQ signal and \texttt{SCR\_EL3} (Table~\ref{tab:scr-el3}) specifies that FIQs are always taken to EL3. This has the side effect that EL1 is not able to mask FIQs using the \texttt{F} bit in the processor status word. Exceptions taken to EL3 will use a different set of \texttt{SPSR} and \texttt{ELR} registers than EL1, so even if they had not been backed up, it is not an issue.
+
+Nevertheless, there is a caveat: if a payload is terminated in the middle of processing an interrupt, that interrupt will stay in Active mode from the point of view of the GIC. Consequently, the interrupt would not be delivered again to a new payload. To remedy this, whenever an interrupt handler is registered, the monitor ensures that the Active and Pending statuses in the GIC are cleared for the interrupt in question.
+
+While the monitor is executing, the \texttt{I} and \texttt{F} flags behave in the standard way: on exception entry, both are set to `1' by hardware, masking all IRQ and FIQ exceptions. Since the monitor's exception handlers never clear these flags, these handlers cannot be preempted.
+
+\subsection{Inter-Processor Interrupts} \label{ssec:ipi}
+
+A program under Linux can request Bmboot to intervene on a running payload. Since the payload owns all CPU time, this must be done asynchronously through an interrupt.
+
+The GICv2 provides a standard mechanism for inter-core Software-Generated Interrupts (SGI). However, it includes mandatory security features that make it unsuitable for the Bmboot use-case: Non-Secure code (which includes Linux running in EL1) is not permitted to raise SGIs configured as Group 0 (see subsection~\ref{subsect:interrupt-groups}). To make this mechanism usable, the SGI would need to be downgraded to Group 1, but then the monitor would need to intercept \textit{all} IRQs, which would be more complicated and less efficient than delivering most of them directly to the payload. Alternatively, Linux itself would need to execute under a secure monitor providing an API to trigger this SGI in Secure world.
+
+Besides the standard SGIs, the Zynq SoC also includes a custom Inter-Processor Interrupt (IPI) controller \cite{zynqmp-trm}. It permits interrupts to be sent between different \textit{agents} in the SoC: APU\footnote{Application Processing Unit, referring to the Cortex-A53 CPU}, RPU, PMU, and programmable logic. For each sender--receiver pair, a 32-byte \textit{Message Buffer} is additionally provided. The security model is also different and by default, Non-secure code has access to this controller. This is convenient for Bmboot's use case.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lcc}\toprule
+  \textbf{Channel} & \textbf{Usable by APU?} & \textbf{Usage in Bmboot} \\\midrule
+  Channel 0 & Yes & CPU0 (as sender), CPU1 (as receiver) \\
+  % Channel 0 & Yes & CPU0 (sender) \\
+  %  &  & CPU1 (receiver) \\
+  Channel 1 & Yes & -- \\
+  Channel 2 & Yes & -- \\
+  Channels 3, 4, 5, 6 & No & -- \\
+  % Channel 4 & No & -- \\
+  % Channel 5 & No & -- \\
+  % Channel 6 & No & -- \\
+  Channel 7 & Yes & CPU2 (as receiver) \\
+  Channel 8 & Yes & CPU3 (as receiver) \\
+  Channel 9 & Yes & -- \\
+  Channel 10 & Yes & -- \\\bottomrule
+  \end{tabular}
+
+  \caption{Overview of IPI channels}
+  \label{tab:ipi-channels}
+\end{table}
+
+The IPI controller provides 11~\textit{channels}, some hardwired to the PMU and others usable by various agents. An IPI request is always associated with a \textit{sender} channel and a \textit{receiver} channel. To a large extent, sender channels are independent from receiver channels and can correspond to different agents for the same channel number (in fact, the IPI controller itself does not have a concept of IPI channel assignment). Table~\ref{tab:ipi-channels} summarizes these channels and how they are allocated to Bmboot executors.
+
+In Bmboot, IPIs are always sent from Linux, via Channel 0. The receiver channel varies depending on the CPU core being addressed. Since the IPIs are used in a unidirectional way, it is possible to economize on the number of channels by ``overloading'' Channel 0 (see Table~\ref{tab:ipi-channels}). If IPIs were to be used in a request--response communication model, this would not be possible.
+
+\subsection{Details of CPU interface configuration}
+
+The CPU interface is programmed, via the \texttt{GICC\_CTRL} register, as shown in Table~\ref{tab:gicc-ctrl}.
+
+\begin{table}[hb]
+	\centering
+	\begin{tabular}{rp{3.0cm}rp{8cm}}\toprule
+		\textbf{Bit(s)} & \textbf{Name} & \textbf{Value} & \textbf{Explanation}\\\midrule
+		0 & EnableGrp0 & \textbf{1} & Enable Group 0 interrupts. \\
+		1 & EnableGrp1 & \textbf{1} & Enable Group 1 interrupts. \\
+		2 & AckCtl & \textbf{1} & Group 1 interrupts can be returned \textit{also} to code running in Secure context (EL3). That seems wrong, is discouraged by ARM, and possibly has caused issues with spurious EL3 interrupts in the past. To be fixed. \\
+		3 & FIQEn & \textbf{1} & Group 0 interrupts will be signalled as FIQ which triggers handling in EL3. \\
+		4 & CBPR & \textbf{0} & The binary-point register, related to interrupt pre-emption, is separate for Group 0 and Group 1 interrupts. \\
+		5--8 & \{FIQ,IRQ\} BypDisGrp\{0,1\} & \textbf{0} & These are not relevant when both groups are enabled. \\
+		9 & EOImodeS & \textbf{0} & Writing to \texttt{GICC\_EOIR} simultaneously drops the \textit{running priority} and deactivates the active interrupt. (the default) \\
+		10 & EOImodeNS & \textbf{0} & Same as above. \\\bottomrule
+	\end{tabular}
+	
+	\caption{Bit assignment in the \texttt{GICC\_CTRL} register and values set by Bmboot}
+	\label{tab:gicc-ctrl}
+\end{table}
+
+Note that this register appears differently from EL3 (Secure view) and EL1 (Non-secure view). Bmboot programs it from EL3.

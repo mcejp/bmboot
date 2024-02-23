@@ -1,0 +1,67 @@
+\section{The need for a bare-metal monitor}
+
+The FGC4 platform has some ambitious goals: in particular, a desired iteration rate of \qty{100}{\kHz} with non-trivial control algorithms. When the execution time budget is just \qty{10}{\us} per iteration, some traditional software engineering practices must be revised. As reported in~\cite{zielinski:task-isolation}, a Linux system, even when carefully tuned for real-time performance, does not provide the necessary predictability of execution timing.
+
+It was therefore decided to dedicate some cores of the Cortex-A53 CPU to execute a bare-metal real-time loop. This, indeed, gives the developer full control and a high-degree of performance predictability. However, it comes at a cost; a~number of features and protections normally provided by the operating system (OS) have to be given up:
+
+\begin{itemize}
+    \item There is no mechanism to load, start and stop programs. The developer takes full responsibility of preparing the program image, loading it in memory, and pointing the CPU to its first instruction.
+    \item In absence of memory protection, the execution environment becomes a fragile house of cards. An erroneous memory access can crash not only the faulty program, but the entire CPU.
+    \item Operating systems provide convenient abstractions for input and output, which can be, for example, transparently re-routed over the network. Bare metal code only has access to low-level hardware peripherals such as GPIO, UART or SPI.
+    \item Without virtual memory, greater care must be taken in regards to memory management. Repeated allocation and de-allocation can leave the memory fragmented, limiting the size of a contiguous block that can be allocated, regardless of the total amount of free memory.
+\end{itemize}
+
+Although most of these issues can be overcome, they add enough friction to slow down development and increase the cost of testing. The lack of solid protection mechanisms can also pose a risk in an operational deployment.
+
+\clearpage
+\section{Hardware features enabling monitor implementation}
+
+The target platform is the Zynq UltraScale+ MPSoC, which incorporates a Cortex-A53 CPU with 2 or 4 cores, depending on the specific part. This CPU, in turn, implements the 64-bit ARMv8-A architecture. Combined, these ``architectural layers'' provide a set of features that make it feasible to implement a monitor program substituting some of the features and protections of a traditional operating system.
+
+\subsection{CPU core control}
+
+When the CPU is powered on, all cores except one (CPU0) are in a \textit{power-on reset} state. They remain in reset until the operating system clears the corresponding bit in a machine register which controls this state.
+
+By manipulating the \textit{device tree}, the OS can be told to ignore certain CPU cores. In that case, they would remain in reset indefinitely. However, the same mechanism used by the OS to start a core can also be used by user code (provided that some default protections in the OS are lifted). This way, a developer can start their own bare-metal program on these additional cores.
+
+It would seem natural that the same machine register could be used to re-assert the reset state and prepare the CPU core to run a new application. However, this is not the case. Attempting to stop a core which is executing code is unpredictable and often leads to a lock-up of the entire system. \cite{zynqmp-trm}
+
+\subsubsection{Power State Coordination Interface}
+
+The ARM firmware implements Power State Coordination Interface (PSCI), which is a standard interface that allows an OS to start and stop CPU cores at will. The Linux kernel implements this interface, but it is not exposed to user-mode programs.
+
+Paradoxically, user-mode code must resort to lower-level means of controlling core reset state, which is through the \texttt{RST\_FPD\_APU} register \cite{zynqmp-registers} and the \texttt{RVBARADDR} family of registers \cite{zynqmp-trm}.
+
+\subsection{Exception levels}
+
+% Note: capitalized as "Exception level" as per ARM docs
+
+The CPU architecture distinguishes different levels of privilege of the software being executed. Generally speaking, more privileged levels have authority over less privileged levels. Additionally, the CPU provides mechanisms to prevent less privileged code from interfering with the execution of more privileged code. This is implemented by means of \textit{Exception levels} (EL). Four exception levels are defined, EL0 through EL3. By convention, they correspond to the different layers of software indicated in Table~\ref{tab:exception-levels}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{ll}\toprule
+  \textbf{EL} & \textbf{Conventional usage}\\\midrule
+    EL3 & Secure monitor \\
+    EL2 & Hypervisor \\
+    EL1 & Operating system \\
+    EL0 & User application (least privileged) \\\bottomrule
+  \end{tabular}
+
+  \caption{Assignment of Exception levels.}
+  \label{tab:exception-levels}
+\end{table}
+
+The usage intended by the designers is reflected in the fact that not all features are available at all levels. Therefore, an attempt to implement a different software stack-up may run into limitations. To give a concrete example, interrupts cannot be delivered to code at EL0; a handler must be implemented on EL1 or above.
+
+\subsubsection{System calls \label{syscall-instructions}}
+
+The architecture provides dedicated instructions to invoke services provided by higher ELs. Executing one of these instructions triggers an exception handler on the corresponding EL. This handler can then process the request and perform the corresponding action.
+
+The instructions are:
+
+\begin{itemize}
+    \item \texttt{SVC} (Supervisor Call) to call into EL1
+    \item \texttt{HVC} (Hypervisor Call) to call into EL2
+    \item \texttt{SMC} (Secure Monitor Call) to call into EL3
+\end{itemize}
