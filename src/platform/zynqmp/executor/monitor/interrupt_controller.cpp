@@ -170,6 +170,12 @@ void bmboot::platform::teardownEl1Interrupts()
 {
     platform::disableInterrupt(zynqmp::scugic::CNTPNS_INTERRUPT_ID);
 
+    // Clear not finished interrupts.
+    // We don't know what happened in the past, payload might have been terminated during an interrupt handling, 
+    // in which case the interrupt would remain in an Active state in the GICC for this CPU.
+    GICC->NSAPR0 = 0;
+
+
     for (int int_id = GIC_MIN_USER_INTERRUPT_ID; int_id <= GIC_MAX_USER_INTERRUPT_ID; int_id++)
     {
         if (interrupt_routed_to_el1[int_id - GIC_MIN_USER_INTERRUPT_ID])

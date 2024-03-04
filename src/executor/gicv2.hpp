@@ -12,13 +12,27 @@ namespace arm::gicv2
 // ARM IHI 0048B.b, Table 4-2 CPU interface register map
 struct GICC
 {
-    volatile uint32_t CTRL;     // CPU Interface Control Register
-    volatile uint32_t PMR;      // Interrupt Priority Mask Register
-    volatile uint32_t BPR;      // Binary Point Register
-    volatile uint32_t IAR;      // Interrupt Acknowledge Register
-    volatile uint32_t EOIR;     // End of Interrupt Register
-    volatile uint32_t RPR;      // Running Priority Register
-    volatile uint32_t HPPIR;    // Highest Priority Pending Interrupt Register
+    volatile uint32_t CTRL;         // CPU Interface Control Register
+    volatile uint32_t PMR;          // Interrupt Priority Mask Register
+    volatile uint32_t BPR;          // Binary Point Register
+    volatile uint32_t IAR;          // Interrupt Acknowledge Register
+
+    volatile uint32_t EOIR;         // End of Interrupt Register
+    volatile uint32_t RPR;          // Running Priority Register
+    volatile uint32_t HPPIR;        // Highest Priority Pending Interrupt Register
+    volatile uint32_t ABPR;          // Aliased Binary Point Register
+
+    volatile uint32_t AIAR;          // Aliased Interrupt Acknowledge Register
+    volatile uint32_t AEOIR;         // Aliased End of Interrupt Register
+    volatile uint32_t AHPPIR;        // Aliased Highest Priority Pending Interrupt Register
+    volatile uint32_t reserved_02c;
+
+    volatile uint32_t reserved_030[4 * 10];
+
+    volatile uint32_t APR0;         // Active Priorities Register
+    volatile uint32_t reserved_0d4[3];
+
+    volatile uint32_t NSAPR0;       // Non-secure Active Priorities Register
 
     // per Table 4-31 GICC_CTLR bit assignments, GICv2 without Security Extensions or Secure
     static constexpr inline uint32_t CTRL_EnableGrp0 =  (1<<0);
@@ -29,6 +43,8 @@ struct GICC
     static constexpr inline uint32_t IAR_CPUID_MASK = 0x00000C00U;
     static constexpr inline uint32_t IAR_INTERRUPT_ID_MASK = 0x000003FFU;
 };
+
+static_assert(sizeof(GICC)   == 0xE4);
 
 // ARM IHI 0048B.b, Table 4-1 Distributor register map
 // "In addition, the GICD_IPRIORITYRn, GICD_ITARGETSRn, GICD_CPENDSGIRn, and GICD_SPENDSGIRn
