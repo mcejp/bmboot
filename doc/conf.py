@@ -60,7 +60,7 @@ html_static_path = ['_static']
 
 # -- Options for sphinx.ext.extlinks
 
-extlinks = {'src_file': ('https://gitlab.cern.ch/ccs/fgc/-/blob/master/sw/fgc/fgc4/source/bmboot/%s',
+extlinks = {'src_file': ('https://gitlab.cern.ch/be-cem-edl/diot/zynqmp/bmboot/-/blob/master/%s',
                       '%s')}
 
 
