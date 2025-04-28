@@ -738,7 +738,12 @@ MaybeError Domain::startup(std::span<uint8_t const> monitor_binary)
     // flush the IPC region to DDR (since the SCU is not in effect yet and CPUn will come up with cold caches)
     __clear_cache(&m_ipc_block, (uint8_t*) &m_ipc_block + ranges.monitor_ipc_size);
 
-    zynqmp::bootCore(std::get<int>(devmem), m_domain, ranges.monitor_address);
+    // Set the reset vector registers and give it the the monitor address
+    auto maybe_error = zynqmp::bootCore(std::get<int>(devmem), m_domain, ranges.monitor_address);
+    if (maybe_error.has_value())
+    {
+        return maybe_error.value();
+    }
 
     // TODO: maybe we should only do this after state goes to ready
     domain_general_state[m_domain] = DomainGeneralState::monitorStarted;
