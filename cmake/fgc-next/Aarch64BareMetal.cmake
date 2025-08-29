@@ -1,0 +1,18 @@
+set(CMAKE_SYSTEM_NAME      Generic)
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+set(PATH "/fgc/dep/bin/arm-gnu-toolchain-x86_64-aarch64-bm/13.3.rel1/bin")
+set(PREFIX "aarch64-none-elf-")
+
+set(CMAKE_LINKER       ${PATH}/${PREFIX}ld      CACHE FILEPATH "Linker Binary")
+set(CMAKE_ASM_COMPILER ${PATH}/${PREFIX}gcc     CACHE FILEPATH "ASM Compiler")
+set(CMAKE_C_COMPILER   ${PATH}/${PREFIX}gcc     CACHE FILEPATH "C Compiler")
+set(CMAKE_CXX_COMPILER ${PATH}/${PREFIX}g++     CACHE FILEPATH "C++ Compiler")
+set(CMAKE_OBJCOPY      ${PATH}/${PREFIX}objcopy CACHE FILEPATH "Objcopy Binary")
+set(CMAKE_OBJDUMP      ${PATH}/${PREFIX}objdump CACHE FILEPATH "Objdump Binary")
+# This one is not known to CMake, but we need it
+find_program(CMAKE_SIZE ${PATH}/${PREFIX}size)
+
+set(CMAKE_C_FLAGS_INIT   -mtune=cortex-a53)
+set(CMAKE_CXX_FLAGS_INIT -mtune=cortex-a53)

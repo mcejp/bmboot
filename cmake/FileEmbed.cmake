@@ -10,7 +10,7 @@ function(FileEmbed_Add input output c_name)
             -DINPUT_FILE=${input}
             -DOUTPUT_FILE=${output}
             -DC_NAME=${c_name}
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake
+            -P ${CMAKE_CURRENT_FUNCTION_LIST_FILE}
             MAIN_DEPENDENCY ${input}
     )
 endfunction()
