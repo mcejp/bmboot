@@ -136,7 +136,8 @@ void stopPeriodicInterrupt();
 //! @param interruptId Platform-specific interrupt ID
 //! @param priority Interrupt priority. A high-priority interrupt may preempt a low priority one.
 //! @param handler Callback function
-void setupInterruptHandling(int interrupt_id, PayloadInterruptPriority priority, InterruptHandler handler);
+//! @return True if setup was successful, false otherwise
+bool setupInterruptHandling(int interrupt_id, PayloadInterruptPriority priority, InterruptHandler handler);
 
 //! Enable the reception of a peripheral interrupt.
 //!

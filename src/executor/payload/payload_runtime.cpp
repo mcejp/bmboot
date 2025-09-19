@@ -36,17 +36,18 @@ AbiVersion bmboot::getMonitorAbiVersion()
                        .minor = major_minor & 0xff};
 }
 
-void bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler)
+bool bmboot::setupInterruptHandling(int interruptId, PayloadInterruptPriority priority, InterruptHandler handler)
 {
     if (interruptId < GIC_MIN_USER_INTERRUPT_ID || interruptId > GIC_MAX_USER_INTERRUPT_ID)
     {
-        // TODO: signal error
-        return;
+        return false;
     }
 
     user_interrupt_handlers[interruptId - GIC_MIN_USER_INTERRUPT_ID] = std::move(handler);
 
     smc(SMC_ZYNQMP_GIC_IRQ_CONFIGURE, interruptId, (int) priority);
+
+    return true;
 }
 
 void bmboot::setupPeriodicInterrupt(std::chrono::microseconds period_us, InterruptHandler handler)
