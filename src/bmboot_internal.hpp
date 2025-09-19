@@ -18,7 +18,7 @@ using Cookie = uint32_t;
 constexpr inline Cookie MONITOR_CODE_COOKIE = 0x7150ABCD;
 
 constexpr inline int GIC_MIN_USER_INTERRUPT_ID = 0;
-constexpr inline int GIC_MAX_USER_INTERRUPT_ID = 128;     // inclusive
+constexpr inline int GIC_MAX_USER_INTERRUPT_ID = 187;     // inclusive
 
 enum
 {
