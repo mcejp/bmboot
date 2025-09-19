@@ -17,8 +17,11 @@ namespace bmboot::internal
 using Cookie = uint32_t;
 constexpr inline Cookie MONITOR_CODE_COOKIE = 0x7150ABCD;
 
+// Range of interrupt IDs (inclusive!) that can be configured by the user.
+// The max value corresponds to the maximum interrupt ID on the Zynq UltraScale+; if other platforms are to be
+// supported, this could be raised to 1019, the maximum permitted by the GICv2 spec (at the cost of ~9 KiB memory usage)
 constexpr inline int GIC_MIN_USER_INTERRUPT_ID = 0;
-constexpr inline int GIC_MAX_USER_INTERRUPT_ID = 187;     // inclusive
+constexpr inline int GIC_MAX_USER_INTERRUPT_ID = 187;
 
 enum
 {
