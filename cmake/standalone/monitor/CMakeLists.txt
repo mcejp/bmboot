@@ -51,9 +51,13 @@ foreach(CPU 1 2 3)
     #       we should not link against monitor_zynqmp. For the time being, it seems to work, anyway.
     target_link_libraries("${TARGET}" PRIVATE monitor_zynqmp)
 
-    target_link_options(${TARGET} PRIVATE
-        -Wl,-T,${BMBOOT_ROOT}/src/executor/monitor/monitor_cpu${CPU}.ld
-        )
+    set(LINKER_SCRIPT "${TOP_LEVEL_SOURCE_DIR}/bmboot_monitor_cpu${CPU}.ld")
+
+    if(EXISTS "${LINKER_SCRIPT}")
+        target_link_options(${TARGET} PRIVATE "-Wl,-T,${LINKER_SCRIPT}")
+    else()
+        message(WARNING "Linker script not found: ${LINKER_SCRIPT}")
+    endif()
 
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${TARGET}> ${CMAKE_BINARY_DIR}/${TARGET}.bin
