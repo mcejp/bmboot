@@ -7,13 +7,16 @@ set(BMBOOT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 set(GENERATED_INCLUDE ${CMAKE_CURRENT_BINARY_DIR}/generated_include)
 file(MAKE_DIRECTORY ${GENERATED_INCLUDE})
 
+set(MONITOR_TOOLCHAIN_FILE "" CACHE STRING "Toolchain file to use for the monitor")
+
 include(ExternalProject)
 
 # add executor code as ExternalProject
 ExternalProject_Add(monitor_zynqmp
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor
         CMAKE_ARGS
-        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/../Aarch64BareMetal.cmake
+        -DTOP_LEVEL_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DCMAKE_TOOLCHAIN_FILE=${MONITOR_TOOLCHAIN_FILE}
         -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ""
