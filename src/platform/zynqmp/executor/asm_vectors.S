@@ -52,7 +52,7 @@
 .globl FPUStatus
 
 /*
- * FPUContextSize is the size of the array (528) where floating point registers are
+ * FPUContextSize is the size of the array where floating point registers are
  * stored when required. The default size corresponds to the case when there is no
  * nested interrupt. If there are nested interrupts in application which are using
  * floating point operation, the size of FPUContextSize need to be increased as per
